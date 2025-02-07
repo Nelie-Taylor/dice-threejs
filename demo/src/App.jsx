@@ -1,26 +1,13 @@
-import { useEffect, useRef, useState } from "react";
-import DiceBox from "@3d-dice/dice-box-threejs";
+import { useState } from "react";
+import { DiceTray, useDice } from "@3d-dice/dice-box-threejs";
 import "./App.css";
 
 function App() {
-  const containerRef = useRef(null);
-  const [diceBox, setDiceBox] = useState(null);
   const [rolling, setRolling] = useState(false);
   const [results, setResults] = useState([]);
+  const { diceBox } = useDice();
 
-  useEffect(() => {
-    if (!containerRef.current) return;
-
-    const box = new DiceBox(containerRef.current, {
-      assetPath: "/assets/",
-      theme: "default",
-      offscreen: false,
-    });
-
-    box.initialize().then(() => {
-      setDiceBox(box);
-    });
-  }, []);
+  console.log(diceBox);
 
   const handleRoll = async () => {
     if (!diceBox || rolling) return;
@@ -33,7 +20,7 @@ function App() {
 
   return (
     <div className="app">
-      <div className="dice-container" ref={containerRef}></div>
+      <DiceTray />
       <div className="controls">
         <button onClick={handleRoll} disabled={!diceBox || rolling}>
           {rolling ? "Rolling..." : "Roll 2d6 + 1d20"}
