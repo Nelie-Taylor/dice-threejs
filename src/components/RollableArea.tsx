@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { View } from 'react-native';
 import { useDice } from '../contexts/DiceContext.js';
+import { RollableScene } from './RollableScene.js';
 
 export function RollableArea() {
   const { containerRef } = useDice();
@@ -14,6 +15,8 @@ export function RollableArea() {
         height: 600,
         backgroundColor: 'red',
       }}
-    />
+    >
+      <RollableScene />
+    </View>
   );
 }
