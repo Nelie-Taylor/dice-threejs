@@ -1,10 +1,10 @@
-import { DICE } from './const/dice';
+import { DICE } from "./const/dice";
 
 const DEFAULT_CONFIG = {
-  name: '',
+  name: "",
   scale: 1,
-  font: 'Arial',
-  color: '',
+  font: "Arial",
+  color: "",
   labels: [],
   valueMap: [],
   values: [],
@@ -12,8 +12,8 @@ const DEFAULT_CONFIG = {
   mass: 300,
   inertia: 13,
   geometry: null,
-  display: 'values',
-  system: 'd20',
+  display: "values",
+  system: "d20",
 };
 
 export class DicePreset {
@@ -35,7 +35,7 @@ export class DicePreset {
 
   constructor(name) {
     if (!DICE[name]) {
-      throw new Error('Dice type unavailable');
+      throw new Error("Dice type unavailable");
     }
 
     // Initialize private fields from DICE configuration
@@ -139,15 +139,15 @@ export class DicePreset {
     }, {});
   }
 
-  registerFaces(faces, type = 'labels') {
-    const targetArray = type === 'labels' ? this.#labels : this.#normals;
+  registerFaces(faces, type = "labels") {
+    const targetArray = type === "labels" ? this.#labels : this.#normals;
 
-    targetArray.unshift('');
-    if (!['d2', 'd10'].includes(this.#shape)) {
-      targetArray.unshift('');
+    targetArray.unshift("");
+    if (!["d2", "d10"].includes(this.#shape)) {
+      targetArray.unshift("");
     }
 
-    if (this.#shape === 'd4') {
+    if (this.#shape === "d4") {
       const [a, b, c, d] = faces;
       this.#labels = [
         [[], [0, 0, 0], [b, d, c], [a, c, d], [b, a, d], [a, b, c]],
@@ -161,11 +161,11 @@ export class DicePreset {
   }
 
   setLabels(labels) {
-    this.#loadTextures(labels, this.registerFaces.bind(this), 'labels');
+    this.#loadTextures(labels, this.registerFaces.bind(this), "labels");
   }
 
   setBumpMaps(normals) {
-    this.#loadTextures(normals, this.registerFaces.bind(this), 'bump');
+    this.#loadTextures(normals, this.registerFaces.bind(this), "bump");
   }
 
   async #loadTextures(textures, callback, type) {
@@ -199,7 +199,7 @@ export class DicePreset {
 
       callback(loadedTextures, type);
     } catch (error) {
-      console.error('Error loading textures:', error);
+      console.error("Error loading textures:", error);
       throw error;
     }
   }
