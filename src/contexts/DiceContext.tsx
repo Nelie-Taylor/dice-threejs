@@ -28,7 +28,7 @@ export const DiceProvider = ({ children, ...config }: DiceBoxConfig) => {
   const containerRef = useRef<View>(null);
   const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
   useEffect(() => {
-    if (status == 'ready' || !containerRef.current) {
+    if (diceBoxRef.current || !containerRef.current) {
       return;
     }
     try {
