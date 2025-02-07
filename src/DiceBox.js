@@ -6,8 +6,7 @@ import { DiceFactory } from './DiceFactory.js';
 import { DiceColors } from './DiceColors.js';
 import { THEMES } from './const/themes.js';
 // import CannonDebugger from 'cannon-es-debugger'
-
-import { debounce } from "./helpers"
+import debounce from "just-debounce-it";
 
 const defaultConfig = {
 	assetPath: "./",
@@ -1064,8 +1063,7 @@ class DiceBox {
 	
 				// dispatch an event with the results object for other UI elements to listen for
 				const event = new CustomEvent('addDiceComplete', {detail: results})
-				document.dispatchEvent(event)
-	
+				document.dispatchEvent(eS
 				resolve(results)
 			}
 
