@@ -1,5 +1,6 @@
-import React, { createContext, useEffect, useRef, useContext, MutableRefObject, RefObject, useState } from 'react';
+import React, { createContext, useEffect, useRef, useContext, RefObject, useState } from 'react';
 import { DiceBox } from '../dice-box-threejs/DiceBox.js';
+import { View } from 'react-native';
 
 type DiceBoxConfig = {
   assetPath: string;
@@ -10,7 +11,7 @@ type DiceBoxConfig = {
 
 type DiceContextType = {
   diceBox: DiceBox | null;
-  containerRef: RefObject<HTMLDivElement>;
+  containerRef: RefObject<View>;
   status: "loading" | "ready" | "error";
 };
 
@@ -24,7 +25,7 @@ export const DiceContext = createContext<DiceContextType>({
 
 export const DiceProvider = ({ children, ...config }: DiceBoxConfig) => {
   const diceBoxRef = useRef<DiceBox | null>(null);
-  const containerRef = useRef<HTMLDivElement>(null);
+  const containerRef = useRef<View>(null);
   const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
   useEffect(() => {
     if (status == 'ready' || !containerRef.current) {
@@ -45,8 +46,8 @@ export const DiceProvider = ({ children, ...config }: DiceBoxConfig) => {
     </DiceContext.Provider>
   );
 };
-
 export const useDice = () => {
   const { diceBox, containerRef, status } = useContext(DiceContext);
   return { diceBox, containerRef, status };
 };
+

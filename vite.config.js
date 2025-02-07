@@ -9,6 +9,11 @@ const outDir = resolve(__dirname, 'dist');
 export default defineConfig({
   root,
   plugins: [react()],
+  resolve: {
+    alias: {
+      "react-native": "react-native-web",
+    },
+  },
   build: {
     lib: {
       entry: resolve(__dirname, "src/index.ts"),
@@ -19,13 +24,20 @@ export default defineConfig({
     outDir,
     emptyOutDir: true,
     rollupOptions: {
-      external: ["react", "react-dom", "three", "cannon-es"], // Added React externals
+      external: [
+        "react",
+        "react-dom",
+        "three",
+        "cannon-es",
+        "react-native-web",
+      ], // Added React Native Web external
       output: {
         globals: {
           react: "React",
           "react-dom": "ReactDOM",
           three: "THREE",
           "cannon-es": "CANNON",
+          "react-native-web": "ReactNativeWeb",
         },
       },
     },
