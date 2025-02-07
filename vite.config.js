@@ -9,7 +9,7 @@ export default defineConfig({
   root,
   build: {
     lib: {
-      entry: resolve(__dirname, "src/index.js"),
+      entry: resolve(__dirname, "src/index.ts"),
       name: "DiceBoxThreejs",
       formats: ["es", "umd"],
       fileName: (format) => `dice-box-threejs.${format}.js`,
