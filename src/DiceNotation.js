@@ -1,10 +1,10 @@
-"use strict";
+'use strict';
 
 export class DiceNotation {
   constructor(notation) {
     // this is here for when the server sends us a notation object
     // the object sent has no methods, so we must reinit the object
-    if (typeof notation == "object") {
+    if (typeof notation == 'object') {
       notation = notation.notation;
     }
 
@@ -13,16 +13,16 @@ export class DiceNotation {
     this.setid = 0;
     this.groups = [];
     this.totalDice = 0;
-    this.op = "";
+    this.op = '';
     this.constant = null;
     this.result = [];
     this.error = false;
     this.boost = 1;
-    this.notation = "";
+    this.notation = '';
     this.vectors = [];
     // this.owner = -1;
 
-    if (!notation || notation == "0") {
+    if (!notation || notation == '0') {
       this.error = true;
     }
 
@@ -31,27 +31,27 @@ export class DiceNotation {
 
   parseNotation(notation) {
     if (notation) {
-      let rage = notation.split("!").length - 1 || 0;
+      let rage = notation.split('!').length - 1 || 0;
       if (rage > 0) {
         this.boost = Math.min(Math.max(rage, 0), 3) * 4;
       }
-      notation = notation.split("!").join(""); //remove and continue
-      notation = notation.split(" ").join(""); // remove spaces
+      notation = notation.split('!').join(''); //remove and continue
+      notation = notation.split(' ').join(''); // remove spaces
 
       //count group starts and ends
-      let groupstarts = notation.split("(").length - 1;
-      let groupends = notation.split(")").length - 1;
+      let groupstarts = notation.split('(').length - 1;
+      let groupends = notation.split(')').length - 1;
       if (groupstarts != groupends) this.error = true;
     }
-    const op = this.notation.length > 0 ? "+" : "";
+    const op = this.notation.length > 0 ? '+' : '';
     this.notation += op + notation;
 
-    let no = notation.split("@"); // 0: dice notations, 1: forced results
+    let no = notation.split('@'); // 0: dice notations, 1: forced results
     let notationstring = no[0];
     //let rollregex = new RegExp(/(\+|\-|\*|\/|\%|\^|){0,1}(\(*|)(\d*)([a-z]{1,5}\d+|[a-z]{1,5}|)(?:\{([a-z]+)(.*?|)\}|)(\)*|)/, 'i');
     let rollregex = new RegExp(
       /(\+|\-|\*|\/|\%|\^|){0,1}()(\d*)([a-z]+\d+|[a-z]+|)(?:\{([a-z]+)(.*?|)\}|)()/,
-      "i"
+      'i'
     );
 
     // TODO: new Regex for notation
@@ -66,7 +66,7 @@ export class DiceNotation {
     // 7th group (?=@([\S ]*)|) :optional - predetermined results such as "@4,4,4" which forces the first three dice rolls to resolve as "4"
     // TODO: roll groups
 
-    let resultsregex = new RegExp(/(\b)*(\-\d+|\d+)(\b)*/, "gi"); // forced results: '1, 2, 3' or '1 2 3'
+    let resultsregex = new RegExp(/(\b)*(\-\d+|\d+)(\b)*/, 'gi'); // forced results: '1, 2, 3' or '1 2 3'
     let res;
 
     let runs = 0;
@@ -90,8 +90,8 @@ export class DiceNotation {
       let groupstart = res[2] && res[2].length > 0;
       let amount = res[3];
       let type = res[4];
-      let funcname = res[5] || "";
-      let funcargs = res[6] || "";
+      let funcname = res[5] || '';
+      let funcargs = res[6] || '';
       let groupend = res[7] && res[7].length > 0;
       let addset = true;
 
@@ -101,8 +101,8 @@ export class DiceNotation {
       }
 
       // arguments come in with a leading comma (','), so we split and remove the first entry
-      funcargs = funcargs.split(",");
-      if (!funcargs || funcargs.length < 1) funcargs = ""; // sanity
+      funcargs = funcargs.split(',');
+      if (!funcargs || funcargs.length < 1) funcargs = ''; // sanity
       funcargs.shift(); // remove first blank entry
 
       // if this is true, we have a single operator and constant as the whole notation string
@@ -115,7 +115,7 @@ export class DiceNotation {
         operator &&
         amount
       ) {
-        type = "d20";
+        type = 'd20';
         this.op = operator;
         this.constant = parseInt(amount);
         amount = 1;
@@ -151,33 +151,33 @@ export class DiceNotation {
   }
 
   stringify(full = true) {
-    let output = "";
+    let output = '';
 
     if (this.set.length < 1) return output;
 
     for (let i = 0; i < this.set.length; i++) {
       let set = this.set[i];
 
-      output += i > 0 && set.op ? set.op : "";
+      output += i > 0 && set.op ? set.op : '';
       output += set.num + set.type;
       if (set.func) {
-        output += "{";
-        output += set.func ? set.func : "";
+        output += '{';
+        output += set.func ? set.func : '';
         output += set.args
-          ? "," + (Array.isArray(set.args) ? set.args.join(",") : set.args)
-          : "";
-        output += "}";
+          ? ',' + (Array.isArray(set.args) ? set.args.join(',') : set.args)
+          : '';
+        output += '}';
       }
     }
 
-    output += this.constant ? this.op + "" + Math.abs(this.constant) : "";
+    output += this.constant ? this.op + '' + Math.abs(this.constant) : '';
 
     if (full && this.result && this.result.length > 0) {
-      output += "@" + this.result.join(",");
+      output += '@' + this.result.join(',');
     }
 
     if (this.boost > 1) {
-      output += "!".repeat(this.boost / 4);
+      output += '!'.repeat(this.boost / 4);
     }
     return output;
   }
@@ -187,9 +187,9 @@ export class DiceNotation {
     type,
     groupID = 0,
     groupLevel = 0,
-    funcname = "",
-    funcargs = "",
-    operator = "+"
+    funcname = '',
+    funcargs = '',
+    operator = '+'
   ) {
     // let diceobj = this.DiceFactory.get(type);
     // if (diceobj == null) { this.error = true; return; }
@@ -200,15 +200,15 @@ export class DiceNotation {
     // has the added bonus of combining duplicate
     let setkey =
       operator +
-      "" +
+      '' +
       type +
-      "" +
+      '' +
       groupID +
-      "" +
+      '' +
       groupLevel +
-      "" +
+      '' +
       funcname +
-      "" +
+      '' +
       funcargs;
     let update = this.setkeys[setkey] != null;
 
@@ -246,7 +246,7 @@ export class DiceNotation {
     const newNotationVectors = {
       ...prevNotation,
       constant: prevNotation.constant + newNotation.constant,
-      notation: prevNotation.notation + "+" + newNotation.notation,
+      notation: prevNotation.notation + '+' + newNotation.notation,
       set: [...prevNotation.set, ...newNotation.set],
       totalDice: prevNotation.vectors.length + newNotation.vectors.length,
       vectors: [...prevNotation.vectors, ...newNotation.vectors],

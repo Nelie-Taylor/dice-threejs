@@ -1,5 +1,5 @@
-import { TEXTURELIST } from "./const/texturelist";
-import { COLORSETS } from "./const/colorsets";
+import { TEXTURELIST } from './const/texturelist';
+import { COLORSETS } from './const/colorsets';
 
 export class DiceColors {
   constructor(options = {}) {
@@ -15,11 +15,11 @@ export class DiceColors {
       return data;
     }
 
-    if (data.source && data.source != "") {
+    if (data.source && data.source != '') {
       data.texture = await this.loadImage(data.source);
     }
 
-    if (data.source_bump && data.source_bump != "") {
+    if (data.source_bump && data.source_bump != '') {
       data.bump = await this.loadImage(data.source_bump);
     }
 
@@ -30,11 +30,11 @@ export class DiceColors {
     return new Promise((resolve, reject) => {
       let img = new Image();
       img.onload = () => resolve(img);
-      img.crossOrigin = "anonymous";
+      img.crossOrigin = 'anonymous';
       img.src = this.assetPath + src;
       img.onerror = (error) => reject(error);
     }).catch((e) => {
-      console.error("Unable to load image texture");
+      console.error('Unable to load image texture');
       // throw new Error("Unable to load image")
     });
   }
@@ -57,10 +57,10 @@ export class DiceColors {
 
   async getColorSet(options) {
     let setName, texture;
-    if (typeof options === "string") {
+    if (typeof options === 'string') {
       setName = options;
     }
-    if (typeof options === "object") {
+    if (typeof options === 'object') {
       setName = options.colorset;
     }
     // if colorset has already been created and cached, then return it
@@ -93,7 +93,7 @@ export class DiceColors {
       return this.colorsets[options.name];
     }
 
-    let defaultSet = COLORSETS["white"];
+    let defaultSet = COLORSETS['white'];
     let colorset = Object.assign({}, defaultSet, options);
     // get texture data
     let texture = this.getTexture(colorset.texture);
@@ -105,7 +105,7 @@ export class DiceColors {
       colorset.texture.material = options.material;
     }
 
-    if (colorset.name.toLowerCase() === "white") {
+    if (colorset.name.toLowerCase() === 'white') {
       // create a unique name
       colorset.name = `${Date.now()}`;
     }
@@ -121,6 +121,6 @@ export class DiceColors {
       return texturename.map((name) => this.getTexture(name));
     }
 
-    return TEXTURELIST[texturename] || TEXTURELIST["none"];
+    return TEXTURELIST[texturename] || TEXTURELIST['none'];
   }
 }

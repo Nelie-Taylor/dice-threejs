@@ -1,10 +1,10 @@
-import { DICE } from "./const/dice";
+import { DICE } from './const/dice';
 
 const defaults = {
-  name: "",
+  name: '',
   scale: 1,
-  font: "Arial",
-  color: "",
+  font: 'Arial',
+  color: '',
   labels: [],
   valueMap: [],
   values: [],
@@ -12,14 +12,14 @@ const defaults = {
   mass: 300,
   inertia: 13,
   geometry: null,
-  display: "values",
-  system: "d20",
+  display: 'values',
+  system: 'd20',
 };
 
 export class DicePreset {
   constructor(name) {
     if (!DICE.hasOwnProperty(name)) {
-      return console.error("dice type unavailable");
+      return console.error('dice type unavailable');
     }
     Object.assign(this, defaults, DICE[name]);
     this.shape = DICE[name].type || name;
@@ -44,19 +44,19 @@ export class DicePreset {
     }
   }
 
-  registerFaces(faces, type = "labels") {
+  registerFaces(faces, type = 'labels') {
     let tab;
 
-    if (type == "labels") {
+    if (type == 'labels') {
       tab = this.labels;
     } else {
       tab = this.normals;
     }
 
-    tab.unshift("");
-    if (!["d2", "d10"].includes(this.shape)) tab.unshift("");
+    tab.unshift('');
+    if (!['d2', 'd10'].includes(this.shape)) tab.unshift('');
 
-    if (this.shape == "d4") {
+    if (this.shape == 'd4') {
       let a = faces[0];
       let b = faces[1];
       let c = faces[2];
@@ -74,11 +74,11 @@ export class DicePreset {
   }
 
   setLabels(labels) {
-    this.loadTextures(labels, this.registerFaces.bind(this), "labels");
+    this.loadTextures(labels, this.registerFaces.bind(this), 'labels');
   }
 
   setBumpMaps(normals) {
-    this.loadTextures(normals, this.registerFaces.bind(this), "bump");
+    this.loadTextures(normals, this.registerFaces.bind(this), 'bump');
   }
 
   loadTextures(textures, callback, type) {

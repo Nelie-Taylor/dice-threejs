@@ -1,3 +1,3 @@
 import { DiceBox } from './DiceBox.js';
 
-export default DiceBox
+export default DiceBox;

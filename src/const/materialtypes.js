@@ -30,4 +30,4 @@ export const MATERIALTYPES = {
     metalness: 0.0,
     envMapIntensity: 1
   }
-}
+};

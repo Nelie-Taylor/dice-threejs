@@ -1,26 +1,26 @@
-import * as THREE from "three";
-import * as CANNON from "cannon-es";
+import * as THREE from 'three';
+import * as CANNON from 'cannon-es';
 
-import { DiceNotation } from "./DiceNotation.js";
-import { DiceFactory } from "./DiceFactory.js";
-import { DiceColors } from "./DiceColors.js";
-import { THEMES } from "./const/themes.js";
+import { DiceNotation } from './DiceNotation.js';
+import { DiceFactory } from './DiceFactory.js';
+import { DiceColors } from './DiceColors.js';
+import { THEMES } from './const/themes.js';
 // import CannonDebugger from 'cannon-es-debugger'
-import debounce from "just-debounce-it";
+import debounce from 'just-debounce-it';
 
 const defaultConfig = {
-  assetPath: "./",
+  assetPath: './',
   framerate: 1 / 60,
   sounds: false,
   volume: 100,
   color_spotlight: 0xefdfd5,
   shadows: true,
-  theme_surface: "green-felt",
-  sound_dieMaterial: "plastic",
+  theme_surface: 'green-felt',
+  sound_dieMaterial: 'plastic',
   theme_customColorset: null,
-  theme_colorset: "white",
-  theme_texture: "",
-  theme_material: "glass",
+  theme_colorset: 'white',
+  theme_texture: '',
+  theme_material: 'glass',
   gravity_multiplier: 400,
   light_intensity: 0.7,
   baseScale: 100,
@@ -68,7 +68,7 @@ class DiceBox {
     this.dice_body_material = new CANNON.Material();
     this.sounds_table = {};
     this.sounds_dice = [];
-    this.lastSoundType = "";
+    this.lastSoundType = '';
     this.lastSoundStep = 0;
     this.lastSound = 0;
     this.iteration;
@@ -92,7 +92,7 @@ class DiceBox {
     // this.theme_surface = "green-felt"
     // this.sound_dieMaterial = 'plastic'
     this.soundDelay = 10; // time between sound effects in ms
-    this.animstate = "";
+    this.animstate = '';
     // this.tally = true;
 
     this.selector = {
@@ -161,12 +161,12 @@ class DiceBox {
       texture: this.theme_texture,
       material: this.theme_material,
     }).catch((e) => {
-      throw new Error("Unable to load theme");
+      throw new Error('Unable to load theme');
     });
 
     if (this.sounds) {
       await this.loadSounds().catch((e) => {
-        throw new Error("Unable to load sounds");
+        throw new Error('Unable to load sounds');
       });
     }
 
@@ -320,7 +320,7 @@ class DiceBox {
 
     this.sound_dieMaterial = hassound_dieMaterial
       ? this.colorData.texture.material
-      : "plastic";
+      : 'plastic';
 
     if (!this.sounds_table.hasOwnProperty(this.surface)) {
       this.sounds_table[this.surface] = [];
@@ -328,23 +328,23 @@ class DiceBox {
       for (let s = 1; s <= numsounds; ++s) {
         const clip = await this.loadAudio(
           this.assetPath +
-            "sounds/surfaces/surface_" +
+            'sounds/surfaces/surface_' +
             this.surface +
             s +
-            ".mp3"
+            '.mp3'
         );
         this.sounds_table[this.surface].push(clip);
       }
     }
     // load the coin sounds for all sets
-    if (!this.sounds_dice.hasOwnProperty("coin")) {
-      this.sounds_dice["coin"] = [];
-      let numsounds = dieMaterials["coin"];
+    if (!this.sounds_dice.hasOwnProperty('coin')) {
+      this.sounds_dice['coin'] = [];
+      let numsounds = dieMaterials['coin'];
       for (let s = 1; s <= numsounds; ++s) {
         const clip = await this.loadAudio(
-          this.assetPath + "sounds/dicehit/dicehit_coin" + s + ".mp3"
+          this.assetPath + 'sounds/dicehit/dicehit_coin' + s + '.mp3'
         );
-        this.sounds_dice["coin"].push(clip);
+        this.sounds_dice['coin'].push(clip);
       }
     }
     if (!this.sounds_dice.hasOwnProperty(this.sound_dieMaterial)) {
@@ -353,10 +353,10 @@ class DiceBox {
       for (let s = 1; s <= numsounds; ++s) {
         const clip = await this.loadAudio(
           this.assetPath +
-            "sounds/dicehit/dicehit_" +
+            'sounds/dicehit/dicehit_' +
             this.sound_dieMaterial +
             s +
-            ".mp3"
+            '.mp3'
         );
         this.sounds_dice[this.sound_dieMaterial].push(clip);
       }
@@ -367,11 +367,11 @@ class DiceBox {
     return new Promise((resolve, reject) => {
       let audio = new Audio();
       audio.oncanplaythrough = () => resolve(audio);
-      audio.crossOrigin = "anonymous";
+      audio.crossOrigin = 'anonymous';
       audio.src = src;
       audio.onerror = (error) => reject(error);
     }).catch((e) => {
-      console.error("Unable to load audio");
+      console.error('Unable to load audio');
     });
   }
 
@@ -453,18 +453,18 @@ class DiceBox {
     );
 
     switch (this.animstate) {
-      case "selector":
-        this.camera.position.z =
+    case 'selector':
+      this.camera.position.z =
           this.selector.dice.length > 9
             ? this.cameraHeight.far
             : this.selector.dice.length < 6
-            ? this.cameraHeight.close
-            : this.cameraHeight.medium;
-        break;
-      case "throw":
-      case "afterthrow":
-      default:
-        this.camera.position.z = this.cameraHeight.far;
+              ? this.cameraHeight.close
+              : this.cameraHeight.medium;
+      break;
+    case 'throw':
+    case 'afterthrow':
+    default:
+      this.camera.position.z = this.cameraHeight.far;
     }
 
     this.camera.lookAt(new THREE.Vector3(0, 0, 0));
@@ -535,7 +535,7 @@ class DiceBox {
       return needResize;
     };
     const debounceResize = debounce(resize);
-    window.addEventListener("resize", debounceResize);
+    window.addEventListener('resize', debounceResize);
   }
 
   vectorRand({ x, y }) {
@@ -584,7 +584,7 @@ class DiceBox {
         velvec.y /= dist;
         let velocity, angle, axis;
 
-        if (diceobj.shape != "d2") {
+        if (diceobj.shape != 'd2') {
           velocity = {
             x: velvec.x * boost,
             y: velvec.y * boost,
@@ -650,9 +650,9 @@ class DiceBox {
     const diceobj = this.DiceFactory.get(dicemesh.notation.type);
 
     // flag this result as forced
-    dicemesh.resultReason = "forced";
+    dicemesh.resultReason = 'forced';
 
-    if (diceobj.shape == "d4") {
+    if (diceobj.shape == 'd4') {
       this.swapDiceFace_D4(dicemesh, result);
       return;
     }
@@ -661,14 +661,14 @@ class DiceBox {
     let value = parseInt(dicemesh.getLastValue().value);
     result = parseInt(result);
 
-    if (dicemesh.notation.type == "d10" && value == 0) value = 10;
-    if (dicemesh.notation.type == "d100" && value == 0) value = 100;
-    if (dicemesh.notation.type == "d100" && value > 0 && value < 10)
+    if (dicemesh.notation.type == 'd10' && value == 0) value = 10;
+    if (dicemesh.notation.type == 'd100' && value == 0) value = 100;
+    if (dicemesh.notation.type == 'd100' && value > 0 && value < 10)
       value *= 10;
 
-    if (dicemesh.notation.type == "d10" && result == 0) result = 10;
-    if (dicemesh.notation.type == "d100" && result == 0) result = 100;
-    if (dicemesh.notation.type == "d100" && result > 0 && result < 10)
+    if (dicemesh.notation.type == 'd10' && result == 0) result = 10;
+    if (dicemesh.notation.type == 'd100' && result == 0) result = 100;
+    if (dicemesh.notation.type == 'd100' && result > 0 && result < 10)
       result *= 10;
 
     let valueindex = diceobj.values.indexOf(value);
@@ -689,13 +689,13 @@ class DiceBox {
     // the mesh's materials start at index 2
     let magic = 2;
     // except on d10 meshes
-    if (diceobj.shape == "d10") magic = 1;
+    if (diceobj.shape == 'd10') magic = 1;
 
     let material_value,
       material_result = resultindex + magic;
 
     //and D2 meshes have a lot more faces
-    if (diceobj.shape != "d2") {
+    if (diceobj.shape != 'd2') {
       material_value = valueindex + magic;
       material_result = resultindex + magic;
     } else {
@@ -813,7 +813,7 @@ class DiceBox {
     dicemesh.body.diceShape = dicemesh.shape;
     dicemesh.body.sleepState = 0;
 
-    dicemesh.body.addEventListener("collide", this.eventCollide.bind(this));
+    dicemesh.body.addEventListener('collide', this.eventCollide.bind(this));
 
     this.world.addBody(dicemesh.body);
   }
@@ -823,28 +823,28 @@ class DiceBox {
     // all this sanity checking helps limits sounds being played
 
     // don't play sounds if we're simulating
-    if (this.animstate == "simulate") return;
+    if (this.animstate == 'simulate') return;
     if (!this.sounds || !body) return;
 
     // let volume = parseInt(window.DiceFavorites.settings.volume.value) || 0;
     if (this.volume <= 0) return;
 
     let now = Date.now();
-    let currentSoundType = body.mass > 0 ? "dice" : "table";
+    let currentSoundType = body.mass > 0 ? 'dice' : 'table';
 
     // the idea here is that a dice clack should never be skipped in favor of a table sound
     // if ((don't play sounds if we played one this world step, or there hasn't been enough delay) AND 'this sound IS NOT a dice clack') then 'skip it'
     if (
       (this.lastSoundStep == body.world.stepnumber || this.lastSound > now) &&
-      currentSoundType != "dice"
+      currentSoundType != 'dice'
     )
       return;
 
     // also skip if it's too early and both last sound and this sound are the same
     if (
       (this.lastSoundStep == body.world.stepnumber || this.lastSound > now) &&
-      currentSoundType == "dice" &&
-      this.lastSoundType == "dice"
+      currentSoundType == 'dice' &&
+      this.lastSoundType == 'dice'
     )
       return;
 
@@ -857,10 +857,10 @@ class DiceBox {
 
       let sound;
 
-      if (body.diceShape === "d2") {
+      if (body.diceShape === 'd2') {
         sound =
-          this.sounds_dice["coin"][
-            Math.floor(Math.random() * this.sounds_dice["coin"].length)
+          this.sounds_dice['coin'][
+            Math.floor(Math.random() * this.sounds_dice['coin'].length)
           ];
       } else {
         sound =
@@ -882,7 +882,7 @@ class DiceBox {
       // 		// console.warn('Sounds muted by autoplay')
       // 	});
       // }
-      this.lastSoundType = "dice";
+      this.lastSoundType = 'dice';
     } else {
       // dice to table collision
       let speed = target.velocity.length();
@@ -905,7 +905,7 @@ class DiceBox {
       // 		// console.warn('Sounds muted by autoplay')
       // 	});
       // }
-      this.lastSoundType = "table";
+      this.lastSoundType = 'table';
     }
 
     this.lastSoundStep = body.world.stepnumber;
@@ -913,7 +913,7 @@ class DiceBox {
   }
 
   checkForRethrow(dicemesh) {
-    const diceFunc = dicemesh.notation.func?.toLowerCase() || "";
+    const diceFunc = dicemesh.notation.func?.toLowerCase() || '';
     if (!diceFunc) {
       return false;
     }
@@ -923,7 +923,7 @@ class DiceBox {
       return false;
     }
 
-    const diceFuncArgs = dicemesh.notation.args || "";
+    const diceFuncArgs = dicemesh.notation.args || '';
     return funcdata.method(dicemesh, diceFuncArgs);
   }
 
@@ -948,7 +948,7 @@ class DiceBox {
         dicemesh.storeRolledValue(dicemesh.resultReason);
       } else if (dicemesh.result.length > 0 && dicemesh.rerolling) {
         dicemesh.rerolling = false;
-        dicemesh.storeRolledValue("reroll");
+        dicemesh.storeRolledValue('reroll');
       }
 
       const rethrow = this.checkForRethrow(dicemesh);
@@ -970,7 +970,7 @@ class DiceBox {
   }
 
   simulateThrow() {
-    this.animstate = "simulate";
+    this.animstate = 'simulate';
     this.iteration = 0;
     this.rolling = true;
     while (!this.throwFinished(true)) {
@@ -980,7 +980,7 @@ class DiceBox {
   }
 
   animateThrow(threadid, callback) {
-    this.animstate = "throw";
+    this.animstate = 'throw';
     let time = Date.now();
     this.last_time = this.last_time || time - this.framerate * 1000;
     let time_diff = (time - this.last_time) / 1000;
@@ -1042,7 +1042,7 @@ class DiceBox {
   }
 
   animateAfterThrow(threadid) {
-    this.animstate = "afterthrow";
+    this.animstate = 'afterthrow';
     let time = Date.now();
     let time_diff = (time - this.last_time) / 1000;
     if (time_diff > 3) time_diff = this.framerate;
@@ -1126,7 +1126,7 @@ class DiceBox {
         let setTotal = 0;
         const rolls = [];
         for (let index = counter; index <= endCount; index++) {
-          if (this.diceList[counter].result.at(-1).reason === "remove") {
+          if (this.diceList[counter].result.at(-1).reason === 'remove') {
             counter++;
             continue;
           }
@@ -1168,7 +1168,7 @@ class DiceBox {
           this.onRollComplete(results);
 
           // dispatch an event with the results object for other UI elements to listen for
-          const event = new CustomEvent("rollComplete", { detail: results });
+          const event = new CustomEvent('rollComplete', { detail: results });
           document.dispatchEvent(event);
 
           resolve(results);
@@ -1197,7 +1197,7 @@ class DiceBox {
         this.onRerollComplete(results);
 
         // dispatch an event with the results object for other UI elements to listen for
-        const event = new CustomEvent("rerollComplete", { detail: results });
+        const event = new CustomEvent('rerollComplete', { detail: results });
         document.dispatchEvent(event);
 
         resolve(results);
@@ -1257,7 +1257,7 @@ class DiceBox {
         this.onAddDiceComplete(results);
 
         // dispatch an event with the results object for other UI elements to listen for
-        const event = new CustomEvent("addDiceComplete", { detail: results });
+        const event = new CustomEvent('addDiceComplete', { detail: results });
         document.dispatchEvent(event);
         resolve(results);
       };
@@ -1277,7 +1277,7 @@ class DiceBox {
         const mesh = this.diceList[dieId];
         if (mesh.body) this.world.removeBody(mesh.body);
         this.scene.remove(mesh);
-        mesh.storeRolledValue("remove");
+        mesh.storeRolledValue('remove');
         results.push(this.getDiceResults(dieId));
       });
 
@@ -1286,7 +1286,7 @@ class DiceBox {
       this.onRemoveDiceComplete(results);
 
       // dispatch an event with the results object for other UI elements to listen for
-      const event = new CustomEvent("removeDiceComplete", { detail: results });
+      const event = new CustomEvent('removeDiceComplete', { detail: results });
       document.dispatchEvent(event);
 
       resolve(results);
