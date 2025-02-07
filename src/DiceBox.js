@@ -8,7 +8,7 @@ import { THEMES } from './const/themes.js';
 // import CannonDebugger from 'cannon-es-debugger'
 import debounce from 'just-debounce-it';
 
-const defaultConfig = {
+const DEFAULT_CONFIG = {
   assetPath: './',
   framerate: 1 / 60,
   sounds: false,
@@ -32,20 +32,33 @@ const defaultConfig = {
   onRemoveDiceComplete: () => {},
 };
 
-class DiceBox {
-  constructor(element_container, options = {}) {
-    //private variables
-    this.initialized = false;
-    this.container = document.querySelector(element_container);
+export class DiceBox {
+  #initialized = false;
+  #adaptive_timestep = false;
+  #last_time = 0;
+  #running = false;
+  #rolling = false;
+  #threadid;
+  #soundDelay = 10;
+  #animstate = '';
+  #dieIndex = 0;
+
+  constructor(elementContainer, options = {}) {
+    this.container = document.querySelector(elementContainer);
     this.dimensions = new THREE.Vector2(
       this.container.clientWidth,
       this.container.clientHeight
     );
-    this.adaptive_timestep = false;
-    this.last_time = 0;
-    this.running = false;
-    this.rolling = false;
-    this.threadid;
+
+    this.box_body = {
+      desk: null,
+      topWall: null,
+      bottomWall: null,
+      leftWall: null,
+      rightWall: null,
+    };
+
+    this.diceList = [];
 
     this.display = {
       currentWidth: null,
@@ -66,34 +79,11 @@ class DiceBox {
     this.scene = new THREE.Scene();
     this.world = new CANNON.World();
     this.dice_body_material = new CANNON.Material();
-    this.sounds_table = {};
+    this.sounds_table = new Map();
     this.sounds_dice = [];
     this.lastSoundType = '';
     this.lastSoundStep = 0;
     this.lastSound = 0;
-    this.iteration;
-    this.renderer;
-    this.barrier;
-    this.camera;
-    this.light;
-    this.light_amb;
-    this.desk;
-    this.box_body = {};
-    this.bodies = [];
-    this.meshes = [];
-    this.diceList = [];
-    this.notationVectors = null;
-    this.dieIndex = 0;
-
-    //public variables
-    // this.framerate = (1/60);
-    // this.sounds = false;
-    // this.volume = 100;
-    // this.theme_surface = "green-felt"
-    // this.sound_dieMaterial = 'plastic'
-    this.soundDelay = 10; // time between sound effects in ms
-    this.animstate = '';
-    // this.tally = true;
 
     this.selector = {
       animate: true,
@@ -102,15 +92,8 @@ class DiceBox {
       dice: [],
     };
 
-    // this.colors = {
-    // 	ambient:  0xf0f5fb,
-    // 	spotlight: 0xefdfd5
-    // };
-
-    // this.shadows = true
-
-    // merge this with default config and any options coming in
-    Object.assign(this, defaultConfig, options);
+    // Merge with default config and options
+    Object.assign(this, DEFAULT_CONFIG, options);
 
     this.DiceColors = new DiceColors({ assetPath: this.assetPath });
     this.DiceFactory = new DiceFactory({
@@ -118,26 +101,35 @@ class DiceBox {
     });
     this.DiceFactory.setBumpMapping(true);
 
-    // post config settings
     this.surface = THEMES[this.theme_surface].surface;
   }
 
-  enableShadows() {
-    this.shadows = true;
-    if (this.renderer) this.renderer.shadowMap.enabled = this.shadows;
-    if (this.light) this.light.castShadow = this.shadows;
-    if (this.desk) this.desk.receiveShadow = this.shadows;
+  get initialized() {
+    return this.#initialized;
   }
-  disableShadows() {
-    this.shadows = false;
+
+  get running() {
+    return this.#running;
+  }
+
+  get rolling() {
+    return this.#rolling;
+  }
+
+  toggleShadows(enabled) {
+    this.shadows = enabled;
     if (this.renderer) this.renderer.shadowMap.enabled = this.shadows;
     if (this.light) this.light.castShadow = this.shadows;
     if (this.desk) this.desk.receiveShadow = this.shadows;
   }
 
   async initialize() {
-    // this.cannonDebugger = new CannonDebugger(this.scene,this.world)
-    this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+    this.renderer = new THREE.WebGLRenderer({
+      antialias: true,
+      alpha: true,
+      powerPreference: 'high-performance',
+    });
+
     this.container.appendChild(this.renderer.domElement);
     this.renderer.shadowMap.enabled = this.shadows;
     this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
@@ -150,41 +142,36 @@ class DiceBox {
     this.world.solver.iterations = 14;
     this.world.allowSleep = true;
 
-    // this.scene.add(new THREE.HemisphereLight( 0xffffbb, 0x676771, 1 ));
-
     this.makeWorldBox();
-
     this.resizeWorld();
 
-    await this.loadTheme({
-      colorset: this.theme_colorset,
-      texture: this.theme_texture,
-      material: this.theme_material,
-    }).catch((e) => {
-      throw new Error('Unable to load theme');
-    });
-
-    if (this.sounds) {
-      await this.loadSounds().catch((e) => {
-        throw new Error('Unable to load sounds');
+    try {
+      await this.loadTheme({
+        colorset: this.theme_colorset,
+        texture: this.theme_texture,
+        material: this.theme_material,
       });
+
+      if (this.sounds) {
+        await this.loadSounds();
+      }
+
+      this.#initialized = true;
+      this.renderer.render(this.scene, this.camera);
+    } catch (error) {
+      console.error('Initialization failed:', error);
+      throw error;
     }
-
-    // this.DiceFactory.setCubeMap(`./themes/${this.theme_surface}/`,THEMES[this.theme_surface].cubeMap)
-
-    this.initialized = true;
-
-    this.renderer.render(this.scene, this.camera);
   }
 
   makeWorldBox() {
-    if (Object.keys(this.box_body).length) {
-      this.world.removeBody(this.box_body.desk);
-      this.world.removeBody(this.box_body.topWall);
+    // Remove existing bodies if they exist
+    if (this.box_body.desk) this.world.removeBody(this.box_body.desk);
+    if (this.box_body.topWall) this.world.removeBody(this.box_body.topWall);
+    if (this.box_body.bottomWall)
       this.world.removeBody(this.box_body.bottomWall);
-      this.world.removeBody(this.box_body.leftWall);
-      this.world.removeBody(this.box_body.rightWall);
-    }
+    if (this.box_body.leftWall) this.world.removeBody(this.box_body.leftWall);
+    if (this.box_body.rightWall) this.world.removeBody(this.box_body.rightWall);
 
     const desk_body_material = new CANNON.Material();
     const barrier_body_material = new CANNON.Material();
@@ -322,8 +309,8 @@ class DiceBox {
       ? this.colorData.texture.material
       : 'plastic';
 
-    if (!this.sounds_table.hasOwnProperty(this.surface)) {
-      this.sounds_table[this.surface] = [];
+    if (!this.sounds_table.has(this.surface)) {
+      this.sounds_table.set(this.surface, []);
       let numsounds = surfaces[this.surface];
       for (let s = 1; s <= numsounds; ++s) {
         const clip = await this.loadAudio(
@@ -333,7 +320,7 @@ class DiceBox {
             s +
             '.mp3'
         );
-        this.sounds_table[this.surface].push(clip);
+        this.sounds_table.get(this.surface).push(clip);
       }
     }
     // load the coin sounds for all sets
@@ -452,7 +439,7 @@ class DiceBox {
       this.cameraHeight.max * 1.3
     );
 
-    switch (this.animstate) {
+    switch (this.#animstate) {
     case 'selector':
       this.camera.position.z =
           this.selector.dice.length > 9
@@ -626,7 +613,7 @@ class DiceBox {
         }
 
         notationVectors.vectors.push({
-          index: this.dieIndex++,
+          index: this.#dieIndex++,
           type: diceobj.type,
           op: operator,
           sid: sid,
@@ -823,7 +810,7 @@ class DiceBox {
     // all this sanity checking helps limits sounds being played
 
     // don't play sounds if we're simulating
-    if (this.animstate == 'simulate') return;
+    if (this.#animstate == 'simulate') return;
     if (!this.sounds || !body) return;
 
     // let volume = parseInt(window.DiceFavorites.settings.volume.value) || 0;
@@ -891,7 +878,7 @@ class DiceBox {
 
       let surface = this.surface;
 
-      let soundlist = this.sounds_table[surface];
+      let soundlist = this.sounds_table.get(surface);
       let sound = soundlist[Math.floor(Math.random() * soundlist.length)];
       if (sound) {
         sound.volume = Math.min(speed / 8000, this.volume / 100);
@@ -909,7 +896,7 @@ class DiceBox {
     }
 
     this.lastSoundStep = body.world.stepnumber;
-    this.lastSound = now + this.soundDelay;
+    this.lastSound = now + this.#soundDelay;
   }
 
   checkForRethrow(dicemesh) {
@@ -970,9 +957,9 @@ class DiceBox {
   }
 
   simulateThrow() {
-    this.animstate = 'simulate';
+    this.#animstate = 'simulate';
     this.iteration = 0;
-    this.rolling = true;
+    this.#rolling = true;
     while (!this.throwFinished(true)) {
       ++this.iteration;
       this.world.step(this.framerate);
@@ -980,10 +967,10 @@ class DiceBox {
   }
 
   animateThrow(threadid, callback) {
-    this.animstate = 'throw';
+    this.#animstate = 'throw';
     let time = Date.now();
-    this.last_time = this.last_time || time - this.framerate * 1000;
-    let time_diff = (time - this.last_time) / 1000;
+    this.#last_time = this.#last_time || time - this.framerate * 1000;
+    let time_diff = (time - this.#last_time) / 1000;
     ++this.iteration;
     let neededSteps = Math.floor(time_diff / this.framerate);
 
@@ -1005,21 +992,21 @@ class DiceBox {
     }
 
     this.renderer.render(this.scene, this.camera);
-    this.last_time = this.last_time + neededSteps * this.framerate * 1000;
+    this.#last_time = this.#last_time + neededSteps * this.framerate * 1000;
 
     // roll finished
-    if (this.running == threadid && this.throwFinished()) {
-      this.running = false;
-      this.rolling = false;
+    if (this.#running == threadid && this.throwFinished()) {
+      this.#running = false;
+      this.#rolling = false;
       if (callback) callback.call(this, this.notationVectors);
 
-      this.running = Date.now();
-      this.animateAfterThrow(this.running);
+      this.#running = Date.now();
+      this.animateAfterThrow(this.#running);
       return;
     }
 
     // roll not finished, keep animating
-    if (this.running == threadid) {
+    if (this.#running == threadid) {
       ((animateCallback, tid, at, aftercall, vecs) => {
         if (!at && time_diff < this.framerate) {
           setTimeout(() => {
@@ -1035,22 +1022,22 @@ class DiceBox {
       }).bind(this)(
         this.animateThrow,
         threadid,
-        this.adaptive_timestep,
+        this.#adaptive_timestep,
         callback
       );
     }
   }
 
   animateAfterThrow(threadid) {
-    this.animstate = 'afterthrow';
+    this.#animstate = 'afterthrow';
     let time = Date.now();
-    let time_diff = (time - this.last_time) / 1000;
+    let time_diff = (time - this.#last_time) / 1000;
     if (time_diff > 3) time_diff = this.framerate;
 
-    this.running = false;
-    this.last_time = time;
+    this.#running = false;
+    this.#last_time = time;
     this.renderer.render(this.scene, this.camera);
-    if (this.running == threadid) {
+    if (this.#running == threadid) {
       ((animateCallback, tid, at) => {
         if (!at && time_diff < this.framerate) {
           setTimeout(() => {
@@ -1063,15 +1050,15 @@ class DiceBox {
             animateCallback.call(this, tid);
           });
         }
-      }).bind(this)(this.animateAfterThrow, threadid, this.adaptive_timestep);
+      }).bind(this)(this.animateAfterThrow, threadid, this.#adaptive_timestep);
     }
   }
 
   startClickThrow(notation) {
     // if (this.rolling) return;
-    if (this.rolling) {
+    if (this.#rolling) {
       this.clearDice();
-      this.rolling = false;
+      this.#rolling = false;
     }
 
     let vector = {
@@ -1092,7 +1079,7 @@ class DiceBox {
   }
 
   clearDice() {
-    this.running = false;
+    this.#running = false;
     let dice;
     while ((dice = this.diceList.pop())) {
       this.scene.remove(dice);
@@ -1178,8 +1165,8 @@ class DiceBox {
   }
 
   async reroll(diceIdArray) {
-    this.rolling = true;
-    this.running = Date.now();
+    this.#rolling = true;
+    this.#running = Date.now();
     this.iteration = 0;
     return new Promise((resolve, reject) => {
       diceIdArray.forEach((dieId) => {
@@ -1191,7 +1178,7 @@ class DiceBox {
         dicemesh.body.angularVelocity = new CANNON.Vec3(25, 25, 25);
         dicemesh.body.velocity = new CANNON.Vec3(0, 0, 3000);
       });
-      this.animateThrow(this.running, () => {
+      this.animateThrow(this.#running, () => {
         const results = diceIdArray.map((dieId) => this.getDiceResults(dieId));
 
         this.onRerollComplete(results);
@@ -1263,10 +1250,10 @@ class DiceBox {
       };
 
       // animate the previously simulated roll
-      this.rolling = true;
-      this.running = Date.now();
-      this.last_time = 0;
-      this.animateThrow(this.running, callback);
+      this.#rolling = true;
+      this.#running = Date.now();
+      this.#last_time = 0;
+      this.animateThrow(this.#running, callback);
     });
   }
 
@@ -1328,11 +1315,9 @@ class DiceBox {
     }
 
     // animate the previously simulated roll
-    this.rolling = true;
-    this.running = Date.now();
-    this.last_time = 0;
-    this.animateThrow(this.running, callback);
+    this.#rolling = true;
+    this.#running = Date.now();
+    this.#last_time = 0;
+    this.animateThrow(this.#running, callback);
   }
 }
-
-export { DiceBox };

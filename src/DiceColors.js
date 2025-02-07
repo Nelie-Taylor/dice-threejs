@@ -2,125 +2,107 @@ import { TEXTURELIST } from './const/texturelist';
 import { COLORSETS } from './const/colorsets';
 
 export class DiceColors {
+  #colorsets = new Map();
+  #assetPath;
+
   constructor(options = {}) {
-    this.colorsets = [];
-    this.assetPath = options.assetPath;
+    this.#assetPath = options.assetPath;
   }
 
-  async ImageLoader(data) {
-    if (Array.isArray(data)) {
-      for (let i = 0, l = data.length; i < l; i++) {
-        data[i] = await this.ImageLoader(data[i]);
-      }
-      return data;
-    }
-
-    if (data.source && data.source != '') {
-      data.texture = await this.loadImage(data.source);
-    }
-
-    if (data.source_bump && data.source_bump != '') {
-      data.bump = await this.loadImage(data.source_bump);
-    }
-
-    return data;
-  }
-
-  loadImage(src) {
-    return new Promise((resolve, reject) => {
-      let img = new Image();
-      img.onload = () => resolve(img);
+  async #loadImage(src) {
+    try {
+      const img = new Image();
       img.crossOrigin = 'anonymous';
-      img.src = this.assetPath + src;
-      img.onerror = (error) => reject(error);
-    }).catch((e) => {
-      console.error('Unable to load image texture');
-      // throw new Error("Unable to load image")
-    });
+      img.src = this.#assetPath + src;
+
+      await new Promise((resolve, reject) => {
+        img.onload = resolve;
+        img.onerror = reject;
+      });
+
+      return img;
+    } catch (error) {
+      console.error('Unable to load image texture:', error);
+      throw new Error('Image loading failed');
+    }
   }
 
-  // randomColor() {
-  // 	// random colors
-  // 	let rgb=[];
-  // 	rgb[0] = Math.floor(Math.random() * 254);
-  // 	rgb[1] = Math.floor(Math.random() * 254);
-  // 	rgb[2] = Math.floor(Math.random() * 254);
+  async #imageLoader(data) {
+    if (Array.isArray(data)) {
+      return Promise.all(data.map((item) => this.#imageLoader(item)));
+    }
 
-  // 	// this is an attempt to make the foregroudn color stand out from the background color
-  // 	// it sometimes produces ok results
-  // 	let brightness = ((parseInt(rgb[0]) * 299) + (parseInt(rgb[1]) * 587) +  (parseInt(rgb[2]) * 114)) / 1000;
-  // 	let foreground = (brightness > 126) ? 'rgb(30,30,30)' : 'rgb(230,230,230)'; // high brightness = dark text, else bright text
-  // 	let background = 'rgb(' + rgb[0] + ',' + rgb[1] + ',' + rgb[2] + ')';
+    const result = { ...data };
 
-  // 	return {background: background, foreground: foreground };
-  // }
+    if (result.source && result.source !== '') {
+      result.texture = await this.#loadImage(result.source);
+    }
+
+    if (result.source_bump && result.source_bump !== '') {
+      result.bump = await this.#loadImage(result.source_bump);
+    }
+
+    return result;
+  }
+
+  #getTexture(textureName) {
+    if (Array.isArray(textureName)) {
+      return textureName.map((name) => this.#getTexture(name));
+    }
+
+    return TEXTURELIST[textureName] ?? TEXTURELIST.none;
+  }
 
   async getColorSet(options) {
-    let setName, texture;
-    if (typeof options === 'string') {
-      setName = options;
-    }
-    if (typeof options === 'object') {
-      setName = options.colorset;
-    }
-    // if colorset has already been created and cached, then return it
-    if (this.colorsets.hasOwnProperty(setName)) {
-      return this.colorsets[setName];
+    const setName = typeof options === 'string' ? options : options?.colorset;
+
+    if (this.#colorsets.has(setName)) {
+      return this.#colorsets.get(setName);
     }
 
-    let colorset = COLORSETS[setName];
-    texture = options.texture || colorset.texture;
+    const colorset = { ...COLORSETS[setName] };
+    const texture = options?.texture ?? colorset.texture;
 
-    // get texture data
-    colorset.texture = this.getTexture(texture);
+    // Get and load texture data
+    colorset.texture = await this.#imageLoader(this.#getTexture(texture));
 
-    // load textures
-    colorset.texture = await this.ImageLoader(colorset.texture);
-
-    // if material type was specified then use it
-    if (options.material) {
+    // Apply material type if specified
+    if (options?.material) {
       colorset.texture.material = options.material;
     }
 
-    // save it for later
-    this.colorsets[setName] = colorset;
+    // Cache for later use
+    this.#colorsets.set(setName, colorset);
 
     return colorset;
   }
 
   async makeColorSet(options = {}) {
-    if (this.colorsets.hasOwnProperty(options.name)) {
-      return this.colorsets[options.name];
+    if (this.#colorsets.has(options.name)) {
+      return this.#colorsets.get(options.name);
     }
 
-    let defaultSet = COLORSETS['white'];
-    let colorset = Object.assign({}, defaultSet, options);
-    // get texture data
-    let texture = this.getTexture(colorset.texture);
+    const defaultSet = COLORSETS.white;
+    const colorset = {
+      ...defaultSet,
+      ...options,
+      name:
+        options.name?.toLowerCase() === 'white'
+          ? Date.now().toString()
+          : options.name,
+    };
 
-    // load textures
-    colorset.texture = await this.ImageLoader(texture);
+    // Get and load texture data
+    const texture = this.#getTexture(colorset.texture);
+    colorset.texture = await this.#imageLoader(texture);
 
     if (options.material) {
       colorset.texture.material = options.material;
     }
 
-    if (colorset.name.toLowerCase() === 'white') {
-      // create a unique name
-      colorset.name = `${Date.now()}`;
-    }
-
-    // save it for later
-    this.colorsets[colorset.name] = colorset;
+    // Cache for later use
+    this.#colorsets.set(colorset.name, colorset);
 
     return colorset;
-  }
-
-  getTexture(texturename) {
-    if (Array.isArray(texturename)) {
-      return texturename.map((name) => this.getTexture(name));
-    }
-
-    return TEXTURELIST[texturename] || TEXTURELIST['none'];
   }
 }

@@ -6,127 +6,144 @@ import { DICE_GEOM } from './const/dice';
 import * as THREE from 'three';
 import * as CANNON from 'cannon-es';
 
-const defaultConfig = {
+const DEFAULT_CONFIG = {
   baseScale: 100,
   bumpMapping: true,
 };
 
-class DiceFactory {
-  static dice = {};
-  constructor(options) {
-    // this.dice = {};
-    this.geometries = {};
+const MATERIAL_OPTIONS = {
+  specular: 0xffffff,
+  color: 0xb5b5b5,
+  shininess: 5,
+  flatShading: true,
+};
 
-    this.materials_cache = {};
-    this.cache_hits = 0;
-    this.cache_misses = 0;
+export class DiceFactory {
+  static #dice = new Map();
 
-    this.label_color = '';
-    this.dice_color = '';
-    this.edge_color = '';
-    this.label_outline = '';
-    this.dice_texture = '';
-    this.dice_material = '';
+  #geometries = new Map();
+  #materials_cache = new Map();
+  #cache_hits = 0;
+  #cache_misses = 0;
+  #label_color = '';
+  #dice_color = '';
+  #edge_color = '';
+  #label_outline = '';
+  #dice_texture = '';
+  #dice_material = '';
 
-    this.material_options = {
-      specular: 0xffffff,
-      color: 0xb5b5b5,
-      shininess: 5,
-      flatShading: true,
-    };
-
-    Object.assign(this, defaultConfig, options);
+  constructor(options = {}) {
+    Object.assign(this, DEFAULT_CONFIG, options);
   }
 
   updateConfig(options = {}) {
     Object.assign(this, options);
     if (options.scale) {
-      this.scaleGeometry();
+      this.#scaleGeometry();
     }
   }
 
   setBumpMapping(bumpMapping) {
     this.bumpMapping = bumpMapping;
-    this.materials_cache = {};
+    this.#materials_cache.clear();
   }
 
-  // returns a dicemesh (THREE.Mesh) object
   create(type) {
-    let diceobj = this.get(type);
+    const diceobj = this.get(type);
     if (!diceobj) return null;
 
-    let geom = this.geometries[type];
+    let geom = this.#geometries.get(type);
     if (!geom) {
       geom = this.createGeometry(diceobj.shape, diceobj.scale * this.baseScale);
-      this.geometries[type] = geom;
+      this.#geometries.set(type, geom);
     }
     if (!geom) return null;
 
     this.setMaterialInfo();
 
-    let dicemesh = new THREE.Mesh(
+    const dicemesh = new THREE.Mesh(
       geom,
       this.createMaterials(diceobj, this.baseScale / 2, 1.0)
     );
-    dicemesh.result = [];
-    dicemesh.shape = diceobj.shape;
-    dicemesh.rerolls = 0;
-    dicemesh.resultReason = 'natural';
-    dicemesh.mass = diceobj.mass;
 
+    Object.assign(dicemesh, {
+      result: [],
+      shape: diceobj.shape,
+      rerolls: 0,
+      resultReason: 'natural',
+      mass: diceobj.mass,
+    });
+
+    // Add methods to dicemesh
+    this.#attachDiceMeshMethods(dicemesh);
+
+    if (diceobj.color) {
+      const material = dicemesh.material[0];
+      material.color = new THREE.Color(diceobj.color);
+      material.emissive = new THREE.Color(diceobj.color);
+      material.emissiveIntensity = 1;
+      material.needsUpdate = true;
+    }
+
+    return this.#fixMaterials(dicemesh, diceobj.values.length);
+  }
+
+  #attachDiceMeshMethods(dicemesh) {
     dicemesh.getFaceValue = function () {
-      // callback function. scope of this = Mesh
-      let reason = this.resultReason;
-      let vector = new THREE.Vector3(0, 0, this.shape == 'd4' ? -1 : 1);
+      const reason = this.resultReason;
+      const vector = new THREE.Vector3(0, 0, this.shape === 'd4' ? -1 : 1);
 
-      let closest_face,
-        closest_angle = Math.PI * 2;
-      let normals = this.geometry.getAttribute('normal').array;
-      for (let i = 0, l = this.geometry.groups.length; i < l; ++i) {
-        let face = this.geometry.groups[i];
-        if (face.materialIndex == 0) continue;
+      let closest_face;
+      let closest_angle = Math.PI * 2;
+      const normals = this.geometry.getAttribute('normal').array;
 
-        //Each group consists in 3 vertices of 3 elements (x, y, z) so the offset between faces in the Float32BufferAttribute is 9
-        let startVertex = i * 9;
-        let normal = new THREE.Vector3(
+      for (let i = 0; i < this.geometry.groups.length; ++i) {
+        const face = this.geometry.groups[i];
+        if (face.materialIndex === 0) continue;
+
+        const startVertex = i * 9;
+        const normal = new THREE.Vector3(
           normals[startVertex],
           normals[startVertex + 1],
           normals[startVertex + 2]
         );
-        let angle = normal
+
+        const angle = normal
           .clone()
           .applyQuaternion(this.body.quaternion)
           .angleTo(vector);
+
         if (angle < closest_angle) {
           closest_angle = angle;
           closest_face = face;
         }
       }
-      let matindex = closest_face.materialIndex - 1;
-      let offset = 2;
 
-      const diceobj = DiceFactory.dice[this.notation.type];
+      const matindex = closest_face.materialIndex - 1;
+      const diceobj = DiceFactory.#dice.get(this.notation.type);
 
-      if (this.shape == 'd4') {
-        let labelindex2 = matindex - 1 == 0 ? 5 : matindex;
-
+      if (this.shape === 'd4') {
+        const labelindex2 = matindex - 1 === 0 ? 5 : matindex;
         return {
           value: matindex,
           label: diceobj.labels[matindex - 1][labelindex2][0],
-          reason: reason,
+          reason,
         };
       }
 
-      if (['d10', 'd2'].includes(this.shape)) {
-        matindex += 1;
-        offset -= 1;
-      }
+      const offset = ['d10', 'd2'].includes(this.shape) ? 1 : 2;
+      const adjustedMatindex = ['d10', 'd2'].includes(this.shape)
+        ? matindex + 1
+        : matindex;
 
-      let value = diceobj.values[(matindex - 1) % diceobj.values.length];
-      let label =
-        diceobj.labels[((matindex - 1) % (diceobj.labels.length - 2)) + offset];
+      const value =
+        diceobj.values[(adjustedMatindex - 1) % diceobj.values.length];
+      const label =
+        diceobj.labels[
+          ((adjustedMatindex - 1) % (diceobj.labels.length - 2)) + offset
+        ];
 
-      return { value: value, label: label, reason: reason };
+      return { value, label, reason };
     };
 
     dicemesh.storeRolledValue = function (reason) {
@@ -135,14 +152,11 @@ class DiceFactory {
     };
 
     dicemesh.getLastValue = function () {
-      if (!this.result || this.result.length < 1)
-        return { value: undefined, label: '', reason: '' };
-
-      return this.result[this.result.length - 1];
+      return this.result?.at(-1) ?? { value: undefined, label: '', reason: '' };
     };
 
     dicemesh.ignoreLastValue = function (ignore) {
-      let lastvalue = this.getLastValue();
+      const lastvalue = this.getLastValue();
       if (lastvalue.value === undefined) return;
 
       lastvalue.ignore = ignore;
@@ -150,58 +164,36 @@ class DiceFactory {
     };
 
     dicemesh.setLastValue = function (result) {
-      if (!this.result || this.result.length < 1) return;
-      if (!result || result.length < 1) return;
-
+      if (!this.result?.length || !result?.length) return;
       return (this.result[this.result.length - 1] = result);
     };
-
-    if (diceobj.color) {
-      dicemesh.material[0].color = new THREE.Color(diceobj.color);
-      dicemesh.material[0].emissive = new THREE.Color(diceobj.color);
-      dicemesh.material[0].emissiveIntensity = 1;
-      dicemesh.material[0].needsUpdate = true;
-    }
-
-    switch (diceobj.values.length) {
-    case 1:
-      return this.fixmaterials(dicemesh, 1);
-    case 2:
-      return this.fixmaterials(dicemesh, 2);
-    case 3:
-      return this.fixmaterials(dicemesh, 3);
-    default:
-      return dicemesh;
-    }
   }
 
   get(type) {
-    let dieSet;
-    if (DiceFactory.dice.hasOwnProperty(type)) {
-      dieSet = DiceFactory.dice[type];
-    } else {
-      dieSet = new DicePreset(type);
-      DiceFactory.dice[type] = dieSet;
+    if (!DiceFactory.#dice.has(type)) {
+      DiceFactory.#dice.set(type, new DicePreset(type));
     }
-
-    return dieSet;
+    return DiceFactory.#dice.get(type);
   }
 
   getGeometry(type) {
-    return this.geometries[type];
+    return this.#geometries.get(type);
   }
 
-  scaleGeometry() {
-    // console.log('this.geometries :>> ', this.geometries);
-    // Object.entries(this.geometries).forEach(([key,geom]) => {
-    // 	geom.scale(this.scale,this.scale,this.scale)
-    // 	// remove cannon shape
-    // 	// geom.cannon_shape.body.removeShape(geom.cannon_shape.body.shapes[0])
-    // 	// recreate cannon shape with new scale
-    // 	const newShape = this.createGeometry(key, this.scale, true)
-    // 	console.log("🚀 ~ Object.entries ~ newShape", newShape)
-    // 	geom.cannon_shape= newShape
-    // })
+  #scaleGeometry() {
+    // Implementation for scaling geometry
+  }
+
+  #fixMaterials(mesh, uniqueSides) {
+    if (uniqueSides <= 3) {
+      const materials = [...mesh.material];
+      const baseIndex = materials.length - uniqueSides;
+      for (let i = 0; i < baseIndex; i++) {
+        materials[i] = materials[baseIndex];
+      }
+      mesh.material = materials;
+    }
+    return mesh;
   }
 
   createMaterials(
@@ -225,7 +217,7 @@ class DiceFactory {
         mat = new THREE.MeshStandardMaterial(MATERIALTYPES[this.dice_material]);
         mat.envMapIntensity = 0;
       } else {
-        mat = new THREE.MeshPhongMaterial(this.material_options);
+        mat = new THREE.MeshPhongMaterial(MATERIAL_OPTIONS);
       }
 
       let canvasTextures;
@@ -341,9 +333,9 @@ class DiceFactory {
         outlinecolor +
         backcolor;
     }
-    if (allowcache && this.materials_cache[cachestring] != null) {
-      this.cache_hits++;
-      return this.materials_cache[cachestring];
+    if (allowcache && this.#materials_cache.get(cachestring) != null) {
+      this.#cache_hits++;
+      return this.#materials_cache.get(cachestring);
     }
 
     let canvas = document.createElement('canvas');
@@ -577,11 +569,11 @@ class DiceFactory {
 
     if (allowcache) {
       // cache new texture
-      this.cache_misses++;
-      this.materials_cache[cachestring] = {
+      this.#cache_misses++;
+      this.#materials_cache.set(cachestring, {
         composite: compositetexture,
         bump: bumpMap,
-      };
+      });
     }
 
     return { composite: compositetexture, bump: bumpMap };
@@ -589,12 +581,12 @@ class DiceFactory {
 
   applyColorSet(colordata) {
     this.colordata = colordata;
-    this.label_color = colordata.foreground;
-    this.dice_color = colordata.background;
-    this.label_outline = colordata.outline;
-    this.dice_texture = colordata.texture;
-    this.dice_material = colordata?.texture?.material || 'none';
-    this.edge_color = colordata.hasOwnProperty('edge')
+    this.#label_color = colordata.foreground;
+    this.#dice_color = colordata.background;
+    this.#label_outline = colordata.outline;
+    this.#dice_texture = colordata.texture;
+    this.#dice_material = colordata?.texture?.material || 'none';
+    this.#edge_color = colordata.hasOwnProperty('edge')
       ? colordata.edge
       : colordata.background;
   }
@@ -602,8 +594,8 @@ class DiceFactory {
   // pass in colorset data from dice-box
   setMaterialInfo(colorset = '') {
     let prevcolordata = this.colordata;
-    let prevtexture = this.dice_texture;
-    let prevmaterial = this.dice_material;
+    let prevtexture = this.#dice_texture;
+    let prevmaterial = this.#dice_material;
 
     //reset random choices
     this.dice_color_rand = '';
@@ -614,107 +606,109 @@ class DiceFactory {
     this.edge_color_rand = '';
 
     // set base color first
-    if (Array.isArray(this.dice_color)) {
-      var colorindex = Math.floor(Math.random() * this.dice_color.length);
+    if (Array.isArray(this.#dice_color)) {
+      var colorindex = Math.floor(Math.random() * this.#dice_color.length);
 
       // if color list and label list are same length, treat them as a parallel list
       if (
-        Array.isArray(this.label_color) &&
-        this.label_color.length == this.dice_color.length
+        Array.isArray(this.#label_color) &&
+        this.#label_color.length == this.#dice_color.length
       ) {
-        this.label_color_rand = this.label_color[colorindex];
+        this.label_color_rand = this.#label_color[colorindex];
 
         // if label list and outline list are same length, treat them as a parallel list
         if (
-          Array.isArray(this.label_outline) &&
-          this.label_outline.length == this.label_color.length
+          Array.isArray(this.#label_outline) &&
+          this.#label_outline.length == this.#label_color.length
         ) {
-          this.label_outline_rand = this.label_outline[colorindex];
+          this.label_outline_rand = this.#label_outline[colorindex];
         }
       }
       // if texture list is same length do the same
       if (
-        Array.isArray(this.dice_texture) &&
-        this.dice_texture.length == this.dice_color.length
+        Array.isArray(this.#dice_texture) &&
+        this.#dice_texture.length == this.#dice_color.length
       ) {
-        this.dice_texture_rand = this.dice_texture[colorindex];
+        this.dice_texture_rand = this.#dice_texture[colorindex];
         this.dice_material_rand = this.dice_texture_rand.material;
       }
 
       //if edge list and color list are same length, treat them as a parallel list
       if (
-        Array.isArray(this.edge_color) &&
-        this.edge_color.length == this.dice_color.length
+        Array.isArray(this.#edge_color) &&
+        this.#edge_color.length == this.#dice_color.length
       ) {
-        this.edge_color_rand = this.edge_color[colorindex];
+        this.edge_color_rand = this.#edge_color[colorindex];
       }
 
-      this.dice_color_rand = this.dice_color[colorindex];
+      this.dice_color_rand = this.#dice_color[colorindex];
     } else {
-      this.dice_color_rand = this.dice_color;
+      this.dice_color_rand = this.#dice_color;
     }
 
     // set edge color if not set
     if (this.edge_color_rand == '') {
-      if (Array.isArray(this.edge_color)) {
-        var colorindex = Math.floor(Math.random() * this.edge_color.length);
+      if (Array.isArray(this.#edge_color)) {
+        var colorindex = Math.floor(Math.random() * this.#edge_color.length);
 
-        this.edge_color_rand = this.edge_color[colorindex];
+        this.edge_color_rand = this.#edge_color[colorindex];
       } else {
-        this.edge_color_rand = this.edge_color;
+        this.edge_color_rand = this.#edge_color;
       }
     }
 
     // if selected label color is still not set, pick one
-    if (this.label_color_rand == '' && Array.isArray(this.label_color)) {
+    if (this.label_color_rand == '' && Array.isArray(this.#label_color)) {
       var colorindex =
-        this.label_color[Math.floor(Math.random() * this.label_color.length)];
+        this.#label_color[Math.floor(Math.random() * this.#label_color.length)];
 
       // if label list and outline list are same length, treat them as a parallel list
       if (
-        Array.isArray(this.label_outline) &&
-        this.label_outline.length == this.label_color.length
+        Array.isArray(this.#label_outline) &&
+        this.#label_outline.length == this.#label_color.length
       ) {
-        this.label_outline_rand = this.label_outline[colorindex];
+        this.label_outline_rand = this.#label_outline[colorindex];
       }
 
-      this.label_color_rand = this.label_color[colorindex];
+      this.label_color_rand = this.#label_color[colorindex];
     } else if (this.label_color_rand == '') {
-      this.label_color_rand = this.label_color;
+      this.label_color_rand = this.#label_color;
     }
 
     // if selected label outline is still not set, pick one
-    if (this.label_outline_rand == '' && Array.isArray(this.label_outline)) {
+    if (this.label_outline_rand == '' && Array.isArray(this.#label_outline)) {
       var colorindex =
-        this.label_outline[
-          Math.floor(Math.random() * this.label_outline.length)
+        this.#label_outline[
+          Math.floor(Math.random() * this.#label_outline.length)
         ];
 
-      this.label_outline_rand = this.label_outline[colorindex];
+      this.label_outline_rand = this.#label_outline[colorindex];
     } else if (this.label_outline_rand == '') {
-      this.label_outline_rand = this.label_outline;
+      this.label_outline_rand = this.#label_outline;
     }
 
     // same for textures list
-    if (this.dice_texture_rand == '' && Array.isArray(this.dice_texture)) {
+    if (this.dice_texture_rand == '' && Array.isArray(this.#dice_texture)) {
       this.dice_texture_rand =
-        this.dice_texture[Math.floor(Math.random() * this.dice_texture.length)];
+        this.#dice_texture[
+          Math.floor(Math.random() * this.#dice_texture.length)
+        ];
       this.dice_material_rand =
-        this.dice_texture_rand.material || this.dice_material;
+        this.dice_texture_rand.material || this.#dice_material;
     } else if (this.dice_texture_rand == '') {
-      this.dice_texture_rand = this.dice_texture;
+      this.dice_texture_rand = this.#dice_texture;
       this.dice_material_rand =
-        this.dice_texture_rand.material || this.dice_material;
+        this.dice_texture_rand.material || this.#dice_material;
     }
 
     //apply material
-    if (this.dice_material_rand == '' && Array.isArray(this.dice_material)) {
+    if (this.dice_material_rand == '' && Array.isArray(this.#dice_material)) {
       this.dice_material_rand =
-        this.dice_material[
-          Math.floor(Math.random() * this.dice_material.length)
+        this.#dice_material[
+          Math.floor(Math.random() * this.#dice_material.length)
         ];
     } else if (this.dice_material_rand == '') {
-      this.dice_material_rand = this.dice_material;
+      this.dice_material_rand = this.#dice_material;
     }
 
     // console.log('this.colordata', this.colordata)
@@ -805,20 +799,6 @@ class DiceFactory {
       console.error(`Geometry for ${type} is not available`);
       return null;
     }
-  }
-
-  fixmaterials(mesh, unique_sides) {
-    // this makes the mesh reuse textures for other sides
-    for (let i = 0, l = mesh.geometry.groups.length; i < l; ++i) {
-      var matindex = mesh.geometry.groups[i].materialIndex - 2;
-      if (matindex < unique_sides) continue;
-
-      let modmatindex = matindex % unique_sides;
-
-      mesh.geometry.groups[i].materialIndex = modmatindex + 2;
-    }
-    mesh.geometry.elementsNeedUpdate = true;
-    return mesh;
   }
 
   create_shape(vertices, faces, radius) {
@@ -1085,5 +1065,3 @@ class DiceFactory {
     return geom;
   }
 }
-
-export { DiceFactory };

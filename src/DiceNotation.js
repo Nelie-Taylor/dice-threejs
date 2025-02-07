@@ -1,185 +1,202 @@
 'use strict';
 
 export class DiceNotation {
+  #set = [];
+  #setkeys = new Map();
+  #setid = 0;
+  #groups = [];
+  #totalDice = 0;
+  #op = '';
+  #constant = null;
+  #result = [];
+  #error = false;
+  #boost = 1;
+  #notation = '';
+  #vectors = [];
+
   constructor(notation) {
-    // this is here for when the server sends us a notation object
-    // the object sent has no methods, so we must reinit the object
-    if (typeof notation == 'object') {
+    if (typeof notation === 'object') {
       notation = notation.notation;
     }
 
-    this.set = [];
-    this.setkeys = [];
-    this.setid = 0;
-    this.groups = [];
-    this.totalDice = 0;
-    this.op = '';
-    this.constant = null;
-    this.result = [];
-    this.error = false;
-    this.boost = 1;
-    this.notation = '';
-    this.vectors = [];
-    // this.owner = -1;
-
-    if (!notation || notation == '0') {
-      this.error = true;
+    if (!notation || notation === '0') {
+      this.#error = true;
+      return;
     }
 
     this.parseNotation(notation);
   }
 
+  get error() {
+    return this.#error;
+  }
+
+  get notation() {
+    return this.#notation;
+  }
+
+  get result() {
+    return this.#result;
+  }
+
+  get boost() {
+    return this.#boost;
+  }
+
+  get set() {
+    return this.#set;
+  }
+
+  get constant() {
+    return this.#constant;
+  }
+
+  get op() {
+    return this.#op;
+  }
+
+  get vectors() {
+    return this.#vectors;
+  }
+
   parseNotation(notation) {
-    if (notation) {
-      let rage = notation.split('!').length - 1 || 0;
-      if (rage > 0) {
-        this.boost = Math.min(Math.max(rage, 0), 3) * 4;
-      }
-      notation = notation.split('!').join(''); //remove and continue
-      notation = notation.split(' ').join(''); // remove spaces
+    if (!notation) return;
 
-      //count group starts and ends
-      let groupstarts = notation.split('(').length - 1;
-      let groupends = notation.split(')').length - 1;
-      if (groupstarts != groupends) this.error = true;
+    const rageCount = (notation.match(/!/g) || []).length;
+    if (rageCount > 0) {
+      this.#boost = Math.min(Math.max(rageCount, 0), 3) * 4;
+      notation = notation.replace(/!/g, '');
     }
-    const op = this.notation.length > 0 ? '+' : '';
-    this.notation += op + notation;
 
-    let no = notation.split('@'); // 0: dice notations, 1: forced results
-    let notationstring = no[0];
-    //let rollregex = new RegExp(/(\+|\-|\*|\/|\%|\^|){0,1}(\(*|)(\d*)([a-z]{1,5}\d+|[a-z]{1,5}|)(?:\{([a-z]+)(.*?|)\}|)(\)*|)/, 'i');
-    let rollregex = new RegExp(
-      /(\+|\-|\*|\/|\%|\^|){0,1}()(\d*)([a-z]+\d+|[a-z]+|)(?:\{([a-z]+)(.*?|)\}|)()/,
-      'i'
-    );
+    notation = notation.replace(/\s+/g, '');
 
-    // TODO: new Regex for notation
-    // let rollregex = new RegExp(/([+\-*/%^]{0,1})(\d+)(d+|[a-zA-Z]+)([a-zA-Z]+|\d*)([+\-]{1}\d+(?![a-z]))?(?:\{([a-z]+),?(.*?)\}|)(?=@([\S ]*)|)/, 'i');
-    // rollregex breakdown - "i" = case insensitive match
-    // 1st group: ([+\-*/%^]{0,1}) :optional - mathmatical operator for the group
-    // 2nd group (\d+) :required - must be a digit indication number of dice
-    // 3rd group (d+|[a-z]+) :required - the letter "d" or text describing the die type
-    // 4th group ([a-z]+|\d*) :optional - text describing the die type or a number indicating the number of sides on the die
-    // 5th group ([+\-]{1}\d+(?![a-z]))? :optional - modifier such as +3 or -5
-    // 6th group (?:\{([a-z]+),?(.*?)\}|) :optional - roll functions such as "{r,2}" indicating "reroll all 2s"
-    // 7th group (?=@([\S ]*)|) :optional - predetermined results such as "@4,4,4" which forces the first three dice rolls to resolve as "4"
-    // TODO: roll groups
+    const groupStarts = (notation.match(/\(/g) || []).length;
+    const groupEnds = (notation.match(/\)/g) || []).length;
 
-    let resultsregex = new RegExp(/(\b)*(\-\d+|\d+)(\b)*/, 'gi'); // forced results: '1, 2, 3' or '1 2 3'
-    let res;
+    if (groupStarts !== groupEnds) {
+      this.#error = true;
+      return;
+    }
+
+    const initialOp = this.#notation.length > 0 ? '+' : '';
+    this.#notation = this.#notation + initialOp + notation;
+
+    let [notationString, forcedResults] = notation.split('@');
+
+    const rollRegex =
+      /(\+|\-|\*|\/|\%|\^|){0,1}()(\d*)([a-z]+\d+|[a-z]+|)(?:\{([a-z]+)(.*?|)\}|)()/i;
+    const resultsRegex = /(\b)*(\-\d+|\d+)(\b)*/gi;
 
     let runs = 0;
-    let breaklimit = 30;
+    const BREAK_LIMIT = 30;
     let groupLevel = 0;
     let groupID = 0;
-    // dice notations
-    // let notationstring = no[0];
-    while (
-      !this.error &&
-      notationstring.length > 0 &&
-      (res = rollregex.exec(notationstring)) !== null &&
-      runs < breaklimit
-    ) {
+
+    while (!this.#error && notationString.length > 0 && runs < BREAK_LIMIT) {
+      const match = rollRegex.exec(notationString);
+      if (!match) break;
+
       runs++;
 
-      //remove this notation so we can move on next iteration
-      notationstring = notationstring.substring(res[0].length);
+      let [
+        fullMatch,
+        operator,
+        groupStart,
+        amount,
+        type,
+        funcname = '',
+        funcargs = '',
+        groupEnd,
+      ] = match;
+      notationString = notationString.substring(fullMatch.length);
 
-      let operator = res[1];
-      let groupstart = res[2] && res[2].length > 0;
-      let amount = res[3];
-      let type = res[4];
-      let funcname = res[5] || '';
-      let funcargs = res[6] || '';
-      let groupend = res[7] && res[7].length > 0;
-      let addset = true;
+      const hasGroupStart = groupStart && groupStart.length > 0;
+      const hasGroupEnd = groupEnd && groupEnd.length > 0;
+      let addSet = true;
 
-      // individual groups get a unique id so two seperate groups at the same level don't get combined later
-      if (groupstart) {
-        groupLevel += res[2].length;
+      if (hasGroupStart) {
+        groupLevel += groupStart.length;
       }
 
-      // arguments come in with a leading comma (','), so we split and remove the first entry
-      funcargs = funcargs.split(',');
-      if (!funcargs || funcargs.length < 1) funcargs = ''; // sanity
-      funcargs.shift(); // remove first blank entry
+      const parsedFuncArgs = funcargs.split(',').slice(1);
 
-      // if this is true, we have a single operator and constant as the whole notation string
-      // e.g. '+7', '*4', '-2'
-      // in this case, assume a d20 is to be rolled
+      // Handle single operator and constant case
       if (
-        runs == 1 &&
-        notationstring.length == 0 &&
+        runs === 1 &&
+        notationString.length === 0 &&
         !type &&
         operator &&
         amount
       ) {
-        type = 'd20';
-        this.op = operator;
-        this.constant = parseInt(amount);
-        amount = 1;
-
-        // in this case, we've got other sets and this is just an ending operator+constant
-      } else if (runs > 1 && notationstring.length == 0 && !type) {
-        this.op = operator;
-        this.constant = parseInt(amount);
-        addset = false;
+        this.#op = operator;
+        this.#constant = parseInt(amount, 10);
+        this.addSet(
+          1,
+          'd20',
+          groupID,
+          groupLevel,
+          funcname,
+          parsedFuncArgs,
+          operator
+        );
       }
-
-      if (addset)
+      // Handle ending operator + constant case
+      else if (runs > 1 && notationString.length === 0 && !type) {
+        this.#op = operator;
+        this.#constant = parseInt(amount, 10);
+        addSet = false;
+      }
+      // Normal case
+      else if (addSet) {
         this.addSet(
           amount,
           type,
           groupID,
           groupLevel,
           funcname,
-          funcargs,
+          parsedFuncArgs,
           operator
         );
+      }
 
-      if (groupend) {
-        groupLevel -= res[7].length;
-        groupID += res[7].length;
+      if (hasGroupEnd) {
+        groupLevel -= groupEnd.length;
+        groupID += groupEnd.length;
       }
     }
 
-    // forced results
-    if (!this.error && no[1] && (res = no[1].match(resultsregex)) !== null) {
-      this.result.push(...res);
+    // Handle forced results
+    if (!this.#error && forcedResults) {
+      const results = forcedResults.match(resultsRegex);
+      if (results) {
+        this.#result = [...results];
+      }
     }
   }
 
   stringify(full = true) {
-    let output = '';
+    if (this.#set.length === 0) return '';
 
-    if (this.set.length < 1) return output;
+    const output = this.#set.reduce((acc, set, index) => {
+      const operator = index > 0 && set.op ? set.op : '';
+      const funcString = set.func
+        ? `{${set.func}${
+          set.args
+            ? ',' + (Array.isArray(set.args) ? set.args.join(',') : set.args)
+            : ''
+        }}`
+        : '';
+      return `${acc}${operator}${set.num}${set.type}${funcString}`;
+    }, '');
 
-    for (let i = 0; i < this.set.length; i++) {
-      let set = this.set[i];
+    const constantString = this.#constant
+      ? `${this.#op}${Math.abs(this.#constant)}`
+      : '';
+    const resultString =
+      full && this.#result.length > 0 ? `@${this.#result.join(',')}` : '';
+    const boostString = this.#boost > 1 ? '!'.repeat(this.#boost / 4) : '';
 
-      output += i > 0 && set.op ? set.op : '';
-      output += set.num + set.type;
-      if (set.func) {
-        output += '{';
-        output += set.func ? set.func : '';
-        output += set.args
-          ? ',' + (Array.isArray(set.args) ? set.args.join(',') : set.args)
-          : '';
-        output += '}';
-      }
-    }
-
-    output += this.constant ? this.op + '' + Math.abs(this.constant) : '';
-
-    if (full && this.result && this.result.length > 0) {
-      output += '@' + this.result.join(',');
-    }
-
-    if (this.boost > 1) {
-      output += '!'.repeat(this.boost / 4);
-    }
-    return output;
+    return `${output}${constantString}${resultString}${boostString}`;
   }
 
   addSet(
@@ -191,67 +208,43 @@ export class DiceNotation {
     funcargs = '',
     operator = '+'
   ) {
-    // let diceobj = this.DiceFactory.get(type);
-    // if (diceobj == null) { this.error = true; return; }
+    amount = Math.abs(parseInt(amount || 1, 10));
+    if (amount === 0) return;
 
-    amount = Math.abs(parseInt(amount || 1));
+    const setKey = `${operator}${type}${groupID}${groupLevel}${funcname}${funcargs}`;
+    const existingSetIndex = this.#setkeys.get(setKey);
 
-    // update a previous set if these match
-    // has the added bonus of combining duplicate
-    let setkey =
-      operator +
-      '' +
-      type +
-      '' +
-      groupID +
-      '' +
-      groupLevel +
-      '' +
-      funcname +
-      '' +
-      funcargs;
-    let update = this.setkeys[setkey] != null;
+    if (existingSetIndex !== undefined) {
+      const existingSet = this.#set[existingSetIndex];
+      existingSet.num += amount;
+    } else {
+      const newSet = {
+        num: amount,
+        type,
+        sid: this.#setid,
+        gid: groupID,
+        glvl: groupLevel,
+        ...(funcname && { func: funcname }),
+        ...(funcargs && { args: funcargs }),
+        ...(operator && { op: operator }),
+      };
 
-    let setentry = {};
-    if (update) {
-      setentry = this.set[this.setkeys[setkey] - 1];
+      this.#setkeys.set(setKey, this.#set.length);
+      this.#set.push(newSet);
+      this.#setid++;
     }
-
-    if (amount > 0) {
-      setentry.num = update ? amount + setentry.num : amount;
-      setentry.type = type;
-      setentry.sid = this.setid;
-      setentry.gid = groupID;
-      setentry.glvl = groupLevel;
-      if (funcname) setentry.func = funcname;
-      if (funcargs) setentry.args = funcargs;
-      if (operator) setentry.op = operator;
-
-      if (!update) {
-        this.setkeys[setkey] = this.set.push(setentry);
-      } else {
-        this.set[this.setkeys[setkey] - 1] = setentry;
-      }
-    }
-
-    if (!update) ++this.setid;
   }
 
-  // TODO:
-  // eliminate boost, groups, owner, gid, glvl
-  // set totalDice
-
   static mergeNotation(prevNotation, newNotation) {
-    // let our vectors combine
-    const newNotationVectors = {
+    return {
       ...prevNotation,
-      constant: prevNotation.constant + newNotation.constant,
-      notation: prevNotation.notation + '+' + newNotation.notation,
+      constant: (prevNotation.constant ?? 0) + (newNotation.constant ?? 0),
+      notation: `${prevNotation.notation}+${newNotation.notation}`,
       set: [...prevNotation.set, ...newNotation.set],
-      totalDice: prevNotation.vectors.length + newNotation.vectors.length,
-      vectors: [...prevNotation.vectors, ...newNotation.vectors],
+      vectors: [
+        ...(prevNotation.vectors || []),
+        ...(newNotation.vectors || []),
+      ],
     };
-
-    return newNotationVectors;
   }
 }
