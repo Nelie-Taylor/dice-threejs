@@ -7,8 +7,6 @@ function App() {
   const [results, setResults] = useState([]);
   const { diceBox } = useDice();
 
-  console.log(diceBox);
-
   const handleRoll = async () => {
     if (!diceBox || rolling) return;
 
