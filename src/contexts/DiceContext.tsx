@@ -35,8 +35,9 @@ export const DiceProvider = ({ children, ...config }: DiceBoxConfig) => {
     }
     try {
       diceBoxRef.current = new DiceBox(containerRef.current, config);
-      diceBoxRef.current.initialize();
-      setStatus("ready");
+      diceBoxRef.current.initialize().then(() => {
+        setStatus("ready");
+      });
     } catch (error) {
       setStatus("error");
     }

@@ -762,12 +762,12 @@ export class DiceBox {
   }
 
   //spawns one dicemesh object from a single vectordata object
-  spawnDice(vectordata, reset = false) {
+  async spawnDice(vectordata, reset = false) {
     const { pos, axis, angle, velocity } = vectordata;
     let dicemesh;
 
     if (!reset) {
-      dicemesh = this.DiceFactory.create(vectordata.type, this.colorData);
+      dicemesh = await this.DiceFactory.create(vectordata.type, this.colorData);
       if (!dicemesh) return;
       dicemesh.notation = vectordata;
       dicemesh.result = [];
@@ -1203,7 +1203,7 @@ export class DiceBox {
     let diceIdArray = [];
 
     for (let i = 0, len = addNotationVectors.vectors.length; i < len; ++i) {
-      this.spawnDice(addNotationVectors.vectors[i]);
+      await this.spawnDice(addNotationVectors.vectors[i]);
     }
 
     this.simulateThrow();
@@ -1216,7 +1216,7 @@ export class DiceBox {
       if (!this.diceList[index]) continue;
 
       //reset dice vectors
-      this.spawnDice(addNotationVectors.vectors[i], this.diceList[index]);
+      await this.spawnDice(addNotationVectors.vectors[i], this.diceList[index]);
       diceIdArray.push(index);
     }
 
@@ -1283,7 +1283,7 @@ export class DiceBox {
     });
   }
 
-  rollDice(callback) {
+  async rollDice(callback) {
     if (this.notationVectors.error) {
       callback.call(this);
       return;
@@ -1293,7 +1293,7 @@ export class DiceBox {
     this.clearDice();
 
     for (let i = 0, len = this.notationVectors.vectors.length; i < len; ++i) {
-      this.spawnDice(this.notationVectors.vectors[i]);
+      await this.spawnDice(this.notationVectors.vectors[i]);
     }
     this.simulateThrow();
     this.steps = 0;
@@ -1303,7 +1303,7 @@ export class DiceBox {
       if (!this.diceList[i]) continue;
 
       //reset dice vectors
-      this.spawnDice(this.notationVectors.vectors[i], this.diceList[i]);
+      await this.spawnDice(this.notationVectors.vectors[i], this.diceList[i]);
     }
 
     //check forced results, fix dice faces if necessary

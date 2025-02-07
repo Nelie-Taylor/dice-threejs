@@ -5,6 +5,7 @@ import { DICE_GEOM } from "./const/dice.js";
 
 import * as THREE from "three";
 import * as CANNON from "cannon-es";
+import { createCanvas } from "./platform";
 
 const DEFAULT_CONFIG = {
   baseScale: 100,
@@ -48,7 +49,7 @@ export class DiceFactory {
     this.#materials_cache.clear();
   }
 
-  create(type) {
+  async create(type) {
     const diceobj = this.get(type);
     if (!diceobj) return null;
 
@@ -63,7 +64,7 @@ export class DiceFactory {
 
     const dicemesh = new THREE.Mesh(
       geom,
-      this.createMaterials(diceobj, this.baseScale / 2, 1.0)
+      await this.createMaterials(diceobj, this.baseScale / 2, 1.0)
     );
 
     Object.assign(dicemesh, {
@@ -196,7 +197,7 @@ export class DiceFactory {
     return mesh;
   }
 
-  createMaterials(
+  async createMaterials(
     diceobj,
     size,
     margin,
@@ -228,7 +229,7 @@ export class DiceFactory {
         if (this.dice_texture_rand.composite != "source-over")
           texture = this.dice_texture_rand;
 
-        canvasTextures = this.createTextMaterial(
+        canvasTextures = await this.createTextMaterial(
           diceobj,
           labels,
           i,
@@ -242,7 +243,7 @@ export class DiceFactory {
         );
         mat.map = canvasTextures.composite;
       } else {
-        canvasTextures = this.createTextMaterial(
+        canvasTextures = await this.createTextMaterial(
           diceobj,
           labels,
           i,
@@ -284,7 +285,7 @@ export class DiceFactory {
     return materials;
   }
 
-  createTextMaterial(
+  async createTextMaterial(
     diceobj,
     labels,
     index,
@@ -338,14 +339,12 @@ export class DiceFactory {
       return this.#materials_cache.get(cachestring);
     }
 
-    let canvas = document.createElement("canvas");
-    let context = canvas.getContext("2d", { alpha: true });
+    const { canvas, context } = await createCanvas();
 
     context.globalAlpha = 0;
     context.clearRect(0, 0, canvas.width, canvas.height);
 
-    let canvasBump = document.createElement("canvas");
-    let contextBump = canvasBump.getContext("2d", { alpha: true });
+    const { canvas: canvasBump, context: contextBump } = await createCanvas();
     contextBump.globalAlpha = 0;
     contextBump.clearRect(0, 0, canvasBump.width, canvasBump.height);
 
