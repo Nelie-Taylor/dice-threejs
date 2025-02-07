@@ -26,10 +26,6 @@ const DEFAULT_CONFIG = {
   baseScale: 100,
   strength: 1,
   iterationLimit: 1000,
-  onRollComplete: () => {},
-  onRerollComplete: () => {},
-  onAddDiceComplete: () => {},
-  onRemoveDiceComplete: () => {},
 };
 
 export class DiceBox {
@@ -1148,19 +1144,9 @@ export class DiceBox {
   async roll(notationSting) {
     this.notationVectors = this.startClickThrow(notationSting);
     if (this.notationVectors) {
-      // const DL = this.diceList
       return new Promise((resolve, reject) => {
         this.rollDice(() => {
           const results = this.getDiceResults();
-
-          // setting up a couple of ways to consume the final results
-          // call onRollComplete
-          this.onRollComplete(results);
-
-          // dispatch an event with the results object for other UI elements to listen for
-          const event = new CustomEvent('rollComplete', { detail: results });
-          document.dispatchEvent(event);
-
           resolve(results);
         });
       });
@@ -1183,13 +1169,6 @@ export class DiceBox {
       });
       this.animateThrow(this.#running, () => {
         const results = diceIdArray.map((dieId) => this.getDiceResults(dieId));
-
-        this.onRerollComplete(results);
-
-        // dispatch an event with the results object for other UI elements to listen for
-        const event = new CustomEvent('rerollComplete', { detail: results });
-        document.dispatchEvent(event);
-
         resolve(results);
       });
     });
@@ -1241,14 +1220,6 @@ export class DiceBox {
     return new Promise((resolve, reject) => {
       const callback = () => {
         const results = diceIdArray.map((dieId) => this.getDiceResults(dieId));
-
-        // setting up a couple of ways to consume the dice added results
-        // call onAddDiceComplete
-        this.onAddDiceComplete(results);
-
-        // dispatch an event with the results object for other UI elements to listen for
-        const event = new CustomEvent('addDiceComplete', { detail: results });
-        document.dispatchEvent(event);
         resolve(results);
       };
 
@@ -1272,13 +1243,6 @@ export class DiceBox {
       });
 
       this.renderer.render(this.scene, this.camera);
-
-      this.onRemoveDiceComplete(results);
-
-      // dispatch an event with the results object for other UI elements to listen for
-      const event = new CustomEvent('removeDiceComplete', { detail: results });
-      document.dispatchEvent(event);
-
       resolve(results);
     });
   }
