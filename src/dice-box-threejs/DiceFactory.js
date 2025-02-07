@@ -24,8 +24,6 @@ export class DiceFactory {
 
   #geometries = new Map();
   #materials_cache = new Map();
-  #cache_hits = 0;
-  #cache_misses = 0;
   #label_color = '';
   #dice_color = '';
   #edge_color = '';
@@ -335,7 +333,6 @@ export class DiceFactory {
         backcolor;
     }
     if (allowcache && this.#materials_cache.get(cachestring) != null) {
-      this.#cache_hits++;
       return this.#materials_cache.get(cachestring);
     }
 
@@ -567,8 +564,6 @@ export class DiceFactory {
     }
 
     if (allowcache) {
-      // cache new texture
-      this.#cache_misses++;
       this.#materials_cache.set(cachestring, {
         composite: compositetexture,
         bump: bumpMap,
@@ -590,20 +585,7 @@ export class DiceFactory {
       : colordata.background;
   }
 
-  // pass in colorset data from dice-box
-  setMaterialInfo(colorset = '') {
-    let prevcolordata = this.colordata;
-    let prevtexture = this.#dice_texture;
-    let prevmaterial = this.#dice_material;
-
-    //reset random choices
-    this.dice_color_rand = '';
-    this.label_color_rand = '';
-    this.label_outline_rand = '';
-    this.dice_texture_rand = '';
-    this.dice_material_rand = '';
-    this.edge_color_rand = '';
-
+  setRandomColors() {
     // set base color first
     if (Array.isArray(this.#dice_color)) {
       var colorindex = Math.floor(Math.random() * this.#dice_color.length);
@@ -709,6 +691,22 @@ export class DiceFactory {
     } else if (this.dice_material_rand == '') {
       this.dice_material_rand = this.#dice_material;
     }
+  }
+
+  setMaterialInfo(colorset = '') {
+    let prevcolordata = this.colordata;
+    let prevtexture = this.#dice_texture;
+    let prevmaterial = this.#dice_material;
+
+    //reset random choices
+    this.dice_color_rand = '';
+    this.label_color_rand = '';
+    this.label_outline_rand = '';
+    this.dice_texture_rand = '';
+    this.dice_material_rand = '';
+    this.edge_color_rand = '';
+
+    this.setRandomColors();
 
     // console.log('this.colordata', this.colordata)
 
