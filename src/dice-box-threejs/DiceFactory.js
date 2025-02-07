@@ -1,11 +1,11 @@
-"use strict";
-import { DicePreset } from "./DicePreset.js";
-import { MATERIALTYPES } from "./const/materialtypes.js";
-import { DICE_GEOM } from "./const/dice.js";
+'use strict';
+import { DicePreset } from './DicePreset.js';
+import { MATERIALTYPES } from './const/materialtypes.js';
+import { DICE_GEOM } from './const/dice.js';
 
-import * as THREE from "three";
-import * as CANNON from "cannon-es";
-import { createCanvas } from "./platform";
+import * as THREE from 'three';
+import * as CANNON from 'cannon-es';
+import { createCanvas } from './platform';
 
 const DEFAULT_CONFIG = {
   baseScale: 100,
@@ -26,12 +26,12 @@ export class DiceFactory {
   #materials_cache = new Map();
   #cache_hits = 0;
   #cache_misses = 0;
-  #label_color = "";
-  #dice_color = "";
-  #edge_color = "";
-  #label_outline = "";
-  #dice_texture = "";
-  #dice_material = "";
+  #label_color = '';
+  #dice_color = '';
+  #edge_color = '';
+  #label_outline = '';
+  #dice_texture = '';
+  #dice_material = '';
 
   constructor(options = {}) {
     Object.assign(this, DEFAULT_CONFIG, options);
@@ -71,7 +71,7 @@ export class DiceFactory {
       result: [],
       shape: diceobj.shape,
       rerolls: 0,
-      resultReason: "natural",
+      resultReason: 'natural',
       mass: diceobj.mass,
     });
 
@@ -92,11 +92,11 @@ export class DiceFactory {
   #attachDiceMeshMethods(dicemesh) {
     dicemesh.getFaceValue = function () {
       const reason = this.resultReason;
-      const vector = new THREE.Vector3(0, 0, this.shape === "d4" ? -1 : 1);
+      const vector = new THREE.Vector3(0, 0, this.shape === 'd4' ? -1 : 1);
 
       let closest_face;
       let closest_angle = Math.PI * 2;
-      const normals = this.geometry.getAttribute("normal").array;
+      const normals = this.geometry.getAttribute('normal').array;
 
       for (let i = 0; i < this.geometry.groups.length; ++i) {
         const face = this.geometry.groups[i];
@@ -123,7 +123,7 @@ export class DiceFactory {
       const matindex = closest_face.materialIndex - 1;
       const diceobj = DiceFactory.#dice.get(this.notation.type);
 
-      if (this.shape === "d4") {
+      if (this.shape === 'd4') {
         const labelindex2 = matindex - 1 === 0 ? 5 : matindex;
         return {
           value: matindex,
@@ -132,8 +132,8 @@ export class DiceFactory {
         };
       }
 
-      const offset = ["d10", "d2"].includes(this.shape) ? 1 : 2;
-      const adjustedMatindex = ["d10", "d2"].includes(this.shape)
+      const offset = ['d10', 'd2'].includes(this.shape) ? 1 : 2;
+      const adjustedMatindex = ['d10', 'd2'].includes(this.shape)
         ? matindex + 1
         : matindex;
 
@@ -153,7 +153,7 @@ export class DiceFactory {
     };
 
     dicemesh.getLastValue = function () {
-      return this.result?.at(-1) ?? { value: undefined, label: "", reason: "" };
+      return this.result?.at(-1) ?? { value: undefined, label: '', reason: '' };
     };
 
     dicemesh.ignoreLastValue = function (ignore) {
@@ -206,7 +206,7 @@ export class DiceFactory {
   ) {
     let materials = [];
     let labels = diceobj.labels;
-    if (diceobj.shape == "d4") {
+    if (diceobj.shape == 'd4') {
       labels = diceobj.labels[d4specialindex];
       size = this.baseScale / 2;
       margin = this.baseScale * 2;
@@ -214,7 +214,7 @@ export class DiceFactory {
 
     for (var i = 0; i < labels.length; ++i) {
       var mat;
-      if (this.dice_material != "none") {
+      if (this.dice_material != 'none') {
         mat = new THREE.MeshStandardMaterial(MATERIALTYPES[this.dice_material]);
         mat.envMapIntensity = 0;
       } else {
@@ -225,8 +225,8 @@ export class DiceFactory {
       if (i == 0) {
         //edge
         //if the texture is fully opaque, we do not use it for edge
-        let texture = { name: "none" };
-        if (this.dice_texture_rand.composite != "source-over")
+        let texture = { name: 'none' };
+        if (this.dice_texture_rand.composite != 'source-over')
           texture = this.dice_texture_rand;
 
         canvasTextures = await this.createTextMaterial(
@@ -267,7 +267,7 @@ export class DiceFactory {
           if (canvasTextures.bump) {
             mat.bumpMap = canvasTextures.bump;
           }
-          if (diceobj.shape != "d4" && diceobj.normals[i]) {
+          if (diceobj.shape != 'd4' && diceobj.normals[i]) {
             mat.bumpMap = new THREE.Texture(diceobj.normals[i]);
             mat.bumpScale = 4;
             mat.bumpMap.needsUpdate = true;
@@ -325,7 +325,7 @@ export class DiceFactory {
       forecolor +
       outlinecolor +
       backcolor;
-    if (diceobj.shape == "d4") {
+    if (diceobj.shape == 'd4') {
       cachestring =
         diceobj.type +
         textCache +
@@ -350,7 +350,7 @@ export class DiceFactory {
 
     let ts;
 
-    if (diceobj.shape == "d4") {
+    if (diceobj.shape == 'd4') {
       ts = this.calc_texture_size(size + margin) * 4;
     } else {
       ts = this.calc_texture_size(size + size * 2 * margin) * 4;
@@ -363,32 +363,32 @@ export class DiceFactory {
     context.fillStyle = backcolor;
     context.fillRect(0, 0, canvas.width, canvas.height);
 
-    contextBump.fillStyle = "#FFFFFF";
+    contextBump.fillStyle = '#FFFFFF';
     contextBump.fillRect(0, 0, canvasBump.width, canvasBump.height);
 
     //create underlying texture
-    if (texture.texture && texture.name != "" && texture.name != "none") {
-      context.globalCompositeOperation = texture.composite || "source-over";
+    if (texture.texture && texture.name != '' && texture.name != 'none') {
+      context.globalCompositeOperation = texture.composite || 'source-over';
       context.drawImage(texture.texture, 0, 0, canvas.width, canvas.height);
-      context.globalCompositeOperation = "source-over";
+      context.globalCompositeOperation = 'source-over';
 
       if (texture.bump) {
-        contextBump.globalCompositeOperation = "source-over";
+        contextBump.globalCompositeOperation = 'source-over';
         contextBump.drawImage(texture.bump, 0, 0, canvas.width, canvas.height);
       }
     } else {
-      context.globalCompositeOperation = "source-over";
+      context.globalCompositeOperation = 'source-over';
     }
 
     // create text
-    context.globalCompositeOperation = "source-over";
-    context.textAlign = "center";
-    context.textBaseline = "middle";
+    context.globalCompositeOperation = 'source-over';
+    context.textAlign = 'center';
+    context.textBaseline = 'middle';
 
-    contextBump.textAlign = "center";
-    contextBump.textBaseline = "middle";
+    contextBump.textAlign = 'center';
+    contextBump.textBaseline = 'middle';
 
-    if (diceobj.shape != "d4") {
+    if (diceobj.shape != 'd4') {
       // fixes texture rotations on specific dice models
       const rotate = {
         d8: { even: -7.5, odd: -127.5 },
@@ -401,7 +401,7 @@ export class DiceFactory {
       let rotateface = rotate[diceobj.shape];
       if (rotateface) {
         let degrees;
-        if (rotateface.hasOwnProperty("all")) {
+        if (rotateface.hasOwnProperty('all')) {
           degrees = rotateface.all;
         } else {
           if (index > 0 && index % 2 != 0) {
@@ -447,24 +447,24 @@ export class DiceFactory {
         let textstarty = canvas.height / 2 + 10;
         let textstartx = canvas.width / 2;
 
-        if (diceobj.shape == "d10") {
+        if (diceobj.shape == 'd10') {
           fontsize = fontsize * 0.75;
           textstarty = textstarty * 1.15 - 10;
-        } else if (diceobj.shape == "d20") {
+        } else if (diceobj.shape == 'd20') {
           textstartx = textstartx * 0.98;
         }
 
-        context.font = fontsize + "pt " + diceobj.font;
-        contextBump.font = fontsize + "pt " + diceobj.font;
+        context.font = fontsize + 'pt ' + diceobj.font;
+        contextBump.font = fontsize + 'pt ' + diceobj.font;
 
-        let lineHeight = context.measureText("M").width * 1.4;
-        let textlines = text.split("\n");
+        let lineHeight = context.measureText('M').width * 1.4;
+        let textlines = text.split('\n');
 
         if (textlines.length > 1) {
           fontsize = fontsize / textlines.length;
-          context.font = fontsize + "pt " + diceobj.font;
-          contextBump.font = fontsize + "pt " + diceobj.font;
-          lineHeight = context.measureText("M").width * 1.2;
+          context.font = fontsize + 'pt ' + diceobj.font;
+          contextBump.font = fontsize + 'pt ' + diceobj.font;
+          lineHeight = context.measureText('M').width * 1.2;
           textstarty -= (lineHeight * textlines.length) / 2;
         }
 
@@ -472,30 +472,30 @@ export class DiceFactory {
           let textline = textlines[i].trim();
 
           // attempt to outline the text with a meaningful color
-          if (outlinecolor != "none" && outlinecolor != backcolor) {
+          if (outlinecolor != 'none' && outlinecolor != backcolor) {
             context.strokeStyle = outlinecolor;
             context.lineWidth = 5;
             context.strokeText(textlines[i], textstartx, textstarty);
 
-            contextBump.strokeStyle = "#000000";
+            contextBump.strokeStyle = '#000000';
             contextBump.lineWidth = 5;
             contextBump.strokeText(textlines[i], textstartx, textstarty);
 
-            if (textline == "6" || textline == "9") {
-              context.strokeText("  .", textstartx, textstarty);
-              contextBump.strokeText("  .", textstartx, textstarty);
+            if (textline == '6' || textline == '9') {
+              context.strokeText('  .', textstartx, textstarty);
+              contextBump.strokeText('  .', textstartx, textstarty);
             }
           }
 
           context.fillStyle = forecolor;
           context.fillText(textlines[i], textstartx, textstarty);
 
-          contextBump.fillStyle = "#000000";
+          contextBump.fillStyle = '#000000';
           contextBump.fillText(textlines[i], textstartx, textstarty);
 
-          if (textline == "6" || textline == "9") {
-            context.fillText("  .", textstartx, textstarty);
-            contextBump.fillText("  .", textstartx, textstarty);
+          if (textline == '6' || textline == '9') {
+            context.fillText('  .', textstartx, textstarty);
+            contextBump.fillText('  .', textstartx, textstarty);
           }
           textstarty += lineHeight * 1.5;
         }
@@ -504,8 +504,8 @@ export class DiceFactory {
       var hw = canvas.width / 2;
       var hh = canvas.height / 2;
 
-      context.font = (ts / 128) * 24 + "pt " + diceobj.font;
-      contextBump.font = (ts / 128) * 24 + "pt " + diceobj.font;
+      context.font = (ts / 128) * 24 + 'pt ' + diceobj.font;
+      contextBump.font = (ts / 128) * 24 + 'pt ' + diceobj.font;
 
       //draw the numbers
       for (let i = 0; i < text.length; i++) {
@@ -525,12 +525,12 @@ export class DiceFactory {
           );
         } else {
           // attempt to outline the text with a meaningful color
-          if (outlinecolor != "none" && outlinecolor != backcolor) {
+          if (outlinecolor != 'none' && outlinecolor != backcolor) {
             context.strokeStyle = outlinecolor;
             context.lineWidth = 5;
             context.strokeText(text[i], hw, hh - ts * 0.3);
 
-            contextBump.strokeStyle = "#000000";
+            contextBump.strokeStyle = '#000000';
             contextBump.lineWidth = 5;
             contextBump.strokeText(text[i], hw, hh - ts * 0.3);
           }
@@ -539,7 +539,7 @@ export class DiceFactory {
           context.fillStyle = forecolor;
           context.fillText(text[i], hw, hh - ts * 0.3);
 
-          contextBump.fillStyle = "#000000";
+          contextBump.fillStyle = '#000000';
           contextBump.fillText(text[i], hw, hh - ts * 0.3);
         }
 
@@ -584,25 +584,25 @@ export class DiceFactory {
     this.#dice_color = colordata.background;
     this.#label_outline = colordata.outline;
     this.#dice_texture = colordata.texture;
-    this.#dice_material = colordata?.texture?.material || "none";
-    this.#edge_color = colordata.hasOwnProperty("edge")
+    this.#dice_material = colordata?.texture?.material || 'none';
+    this.#edge_color = colordata.hasOwnProperty('edge')
       ? colordata.edge
       : colordata.background;
   }
 
   // pass in colorset data from dice-box
-  setMaterialInfo(colorset = "") {
+  setMaterialInfo(colorset = '') {
     let prevcolordata = this.colordata;
     let prevtexture = this.#dice_texture;
     let prevmaterial = this.#dice_material;
 
     //reset random choices
-    this.dice_color_rand = "";
-    this.label_color_rand = "";
-    this.label_outline_rand = "";
-    this.dice_texture_rand = "";
-    this.dice_material_rand = "";
-    this.edge_color_rand = "";
+    this.dice_color_rand = '';
+    this.label_color_rand = '';
+    this.label_outline_rand = '';
+    this.dice_texture_rand = '';
+    this.dice_material_rand = '';
+    this.edge_color_rand = '';
 
     // set base color first
     if (Array.isArray(this.#dice_color)) {
@@ -646,7 +646,7 @@ export class DiceFactory {
     }
 
     // set edge color if not set
-    if (this.edge_color_rand == "") {
+    if (this.edge_color_rand == '') {
       if (Array.isArray(this.#edge_color)) {
         var colorindex = Math.floor(Math.random() * this.#edge_color.length);
 
@@ -657,7 +657,7 @@ export class DiceFactory {
     }
 
     // if selected label color is still not set, pick one
-    if (this.label_color_rand == "" && Array.isArray(this.#label_color)) {
+    if (this.label_color_rand == '' && Array.isArray(this.#label_color)) {
       var colorindex =
         this.#label_color[Math.floor(Math.random() * this.#label_color.length)];
 
@@ -670,43 +670,43 @@ export class DiceFactory {
       }
 
       this.label_color_rand = this.#label_color[colorindex];
-    } else if (this.label_color_rand == "") {
+    } else if (this.label_color_rand == '') {
       this.label_color_rand = this.#label_color;
     }
 
     // if selected label outline is still not set, pick one
-    if (this.label_outline_rand == "" && Array.isArray(this.#label_outline)) {
+    if (this.label_outline_rand == '' && Array.isArray(this.#label_outline)) {
       var colorindex =
         this.#label_outline[
           Math.floor(Math.random() * this.#label_outline.length)
         ];
 
       this.label_outline_rand = this.#label_outline[colorindex];
-    } else if (this.label_outline_rand == "") {
+    } else if (this.label_outline_rand == '') {
       this.label_outline_rand = this.#label_outline;
     }
 
     // same for textures list
-    if (this.dice_texture_rand == "" && Array.isArray(this.#dice_texture)) {
+    if (this.dice_texture_rand == '' && Array.isArray(this.#dice_texture)) {
       this.dice_texture_rand =
         this.#dice_texture[
           Math.floor(Math.random() * this.#dice_texture.length)
         ];
       this.dice_material_rand =
         this.dice_texture_rand.material || this.#dice_material;
-    } else if (this.dice_texture_rand == "") {
+    } else if (this.dice_texture_rand == '') {
       this.dice_texture_rand = this.#dice_texture;
       this.dice_material_rand =
         this.dice_texture_rand.material || this.#dice_material;
     }
 
     //apply material
-    if (this.dice_material_rand == "" && Array.isArray(this.#dice_material)) {
+    if (this.dice_material_rand == '' && Array.isArray(this.#dice_material)) {
       this.dice_material_rand =
         this.#dice_material[
           Math.floor(Math.random() * this.#dice_material.length)
         ];
-    } else if (this.dice_material_rand == "") {
+    } else if (this.dice_material_rand == '') {
       this.dice_material_rand = this.#dice_material;
     }
 
@@ -724,79 +724,79 @@ export class DiceFactory {
   }
 
   createGeometry(type, radius, onlyShape = false) {
-    const func = onlyShape ? "create_shape" : "create_geom";
+    const func = onlyShape ? 'create_shape' : 'create_geom';
     switch (type) {
-      case "d2":
-        var geom = new THREE.CylinderGeometry(
-          1 * radius,
-          1 * radius,
-          0.1 * radius,
-          32
-        );
-        geom.cannon_shape = new CANNON.Cylinder(
-          1 * radius,
-          1 * radius,
-          0.1 * radius,
-          8
-        );
-        return geom;
-      case "d4":
-        return this[func](
-          DICE_GEOM.d4.vertices,
-          DICE_GEOM.d4.faces,
-          radius,
-          -0.1,
-          (Math.PI * 7) / 6,
-          0.96
-        );
-      case "d6":
-        return this[func](
-          DICE_GEOM.d6.vertices,
-          DICE_GEOM.d6.faces,
-          radius,
-          0.1,
-          Math.PI / 4,
-          0.96
-        );
-      case "d8":
-        return this[func](
-          DICE_GEOM.d8.vertices,
-          DICE_GEOM.d8.faces,
-          radius,
-          0,
-          -Math.PI / 4 / 2,
-          0.965
-        );
-      case "d10":
-        return this[func](
-          DICE_GEOM.d10.vertices,
-          DICE_GEOM.d10.faces,
-          radius,
-          0.3,
-          Math.PI,
-          0.945
-        );
-      case "d12":
-        return this[func](
-          DICE_GEOM.d12.vertices,
-          DICE_GEOM.d12.faces,
-          radius,
-          0.2,
-          -Math.PI / 4 / 2,
-          0.968
-        );
-      case "d20":
-        return this[func](
-          DICE_GEOM.d20.vertices,
-          DICE_GEOM.d20.faces,
-          radius,
-          -0.2,
-          -Math.PI / 4 / 2,
-          0.955
-        );
-      default:
-        console.error(`Geometry for ${type} is not available`);
-        return null;
+    case 'd2':
+      var geom = new THREE.CylinderGeometry(
+        1 * radius,
+        1 * radius,
+        0.1 * radius,
+        32
+      );
+      geom.cannon_shape = new CANNON.Cylinder(
+        1 * radius,
+        1 * radius,
+        0.1 * radius,
+        8
+      );
+      return geom;
+    case 'd4':
+      return this[func](
+        DICE_GEOM.d4.vertices,
+        DICE_GEOM.d4.faces,
+        radius,
+        -0.1,
+        (Math.PI * 7) / 6,
+        0.96
+      );
+    case 'd6':
+      return this[func](
+        DICE_GEOM.d6.vertices,
+        DICE_GEOM.d6.faces,
+        radius,
+        0.1,
+        Math.PI / 4,
+        0.96
+      );
+    case 'd8':
+      return this[func](
+        DICE_GEOM.d8.vertices,
+        DICE_GEOM.d8.faces,
+        radius,
+        0,
+        -Math.PI / 4 / 2,
+        0.965
+      );
+    case 'd10':
+      return this[func](
+        DICE_GEOM.d10.vertices,
+        DICE_GEOM.d10.faces,
+        radius,
+        0.3,
+        Math.PI,
+        0.945
+      );
+    case 'd12':
+      return this[func](
+        DICE_GEOM.d12.vertices,
+        DICE_GEOM.d12.faces,
+        radius,
+        0.2,
+        -Math.PI / 4 / 2,
+        0.968
+      );
+    case 'd20':
+      return this[func](
+        DICE_GEOM.d20.vertices,
+        DICE_GEOM.d20.faces,
+        radius,
+        -0.2,
+        -Math.PI / 4 / 2,
+        0.955
+      );
+    default:
+      console.error(`Geometry for ${type} is not available`);
+      return null;
     }
   }
 
@@ -881,11 +881,11 @@ export class DiceFactory {
     }
 
     geom.setAttribute(
-      "position",
+      'position',
       new THREE.Float32BufferAttribute(positions, 3)
     );
-    geom.setAttribute("normal", new THREE.Float32BufferAttribute(normals, 3));
-    geom.setAttribute("uv", new THREE.Float32BufferAttribute(uvs, 2));
+    geom.setAttribute('normal', new THREE.Float32BufferAttribute(normals, 3));
+    geom.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
     geom.boundingSphere = new THREE.Sphere(new THREE.Vector3(), radius);
     return geom;
   }
@@ -966,11 +966,11 @@ export class DiceFactory {
     }
 
     geom.setAttribute(
-      "position",
+      'position',
       new THREE.Float32BufferAttribute(positions, 3)
     );
-    geom.setAttribute("normal", new THREE.Float32BufferAttribute(normals, 3));
-    geom.setAttribute("uv", new THREE.Float32BufferAttribute(uvs, 2));
+    geom.setAttribute('normal', new THREE.Float32BufferAttribute(normals, 3));
+    geom.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
     geom.boundingSphere = new THREE.Sphere(new THREE.Vector3(), radius);
 
     return geom;
@@ -1060,7 +1060,7 @@ export class DiceFactory {
     }
     //var geom = make_geom(vectors, faces, radius, tab, af); // Without chamfer
     geom.cannon_shape = this.create_shape(vertices, faces, radius);
-    geom.name = "d" + faces.length;
+    geom.name = 'd' + faces.length;
     return geom;
   }
 }

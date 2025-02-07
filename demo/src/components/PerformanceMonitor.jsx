@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState } from 'react';
 
 const PerformanceMonitor = () => {
   const [fps, setFps] = useState(0);
@@ -47,14 +47,14 @@ const PerformanceMonitor = () => {
   return (
     <div
       style={{
-        position: "fixed",
-        top: "10px",
-        left: "10px",
-        backgroundColor: "rgba(0, 0, 0, 0.7)",
-        color: "#fff",
-        padding: "10px",
-        borderRadius: "5px",
-        fontFamily: "monospace",
+        position: 'fixed',
+        top: '10px',
+        left: '10px',
+        backgroundColor: 'rgba(0, 0, 0, 0.7)',
+        color: '#fff',
+        padding: '10px',
+        borderRadius: '5px',
+        fontFamily: 'monospace',
         zIndex: 9999,
       }}
     >

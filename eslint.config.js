@@ -35,6 +35,7 @@ export default [
         __dirname: 'readonly',
         define: 'readonly',
         self: 'readonly',
+        ReactNativeCanvas: 'readonly',
       },
     },
     plugins: {

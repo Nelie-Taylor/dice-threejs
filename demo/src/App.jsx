@@ -1,7 +1,7 @@
-import { useState } from "react";
-import { RollableArea, useDice } from "@3d-dice/dice-box-threejs";
-import PerformanceMonitor from "./components/PerformanceMonitor";
-import "./App.css";
+import { useState } from 'react';
+import { RollableArea, useDice } from '@3d-dice/dice-box-threejs';
+import PerformanceMonitor from './components/PerformanceMonitor';
+import './App.css';
 
 function App() {
   const [rolling, setRolling] = useState(false);
@@ -12,7 +12,7 @@ function App() {
     if (!diceBox || rolling) return;
 
     setRolling(true);
-    const results = await diceBox.roll("2d6 + 1d20@6,6,20");
+    const results = await diceBox.roll('2d6 + 1d20@6,6,20');
     setResults(results);
     setRolling(false);
   };
@@ -23,7 +23,7 @@ function App() {
       <RollableArea />
       <div className="controls">
         <button onClick={handleRoll} disabled={!diceBox || rolling}>
-          {rolling ? "Rolling..." : "Roll 2d6 + 1d20"}
+          {rolling ? 'Rolling...' : 'Roll 2d6 + 1d20'}
         </button>
         {results.length > 0 && (
           <div className="results">

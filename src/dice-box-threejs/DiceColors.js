@@ -1,5 +1,5 @@
-import { TEXTURELIST } from "./const/texturelist";
-import { COLORSETS } from "./const/colorsets";
+import { TEXTURELIST } from './const/texturelist';
+import { COLORSETS } from './const/colorsets';
 
 export class DiceColors {
   #colorsets = new Map();
@@ -12,7 +12,7 @@ export class DiceColors {
   async #loadImage(src) {
     try {
       const img = new Image();
-      img.crossOrigin = "anonymous";
+      img.crossOrigin = 'anonymous';
       img.src = this.#assetPath + src;
 
       await new Promise((resolve, reject) => {
@@ -22,8 +22,8 @@ export class DiceColors {
 
       return img;
     } catch (error) {
-      console.error("Unable to load image texture:", error);
-      throw new Error("Image loading failed");
+      console.error('Unable to load image texture:', error);
+      throw new Error('Image loading failed');
     }
   }
 
@@ -34,11 +34,11 @@ export class DiceColors {
 
     const result = { ...data };
 
-    if (result.source && result.source !== "") {
+    if (result.source && result.source !== '') {
       result.texture = await this.#loadImage(result.source);
     }
 
-    if (result.source_bump && result.source_bump !== "") {
+    if (result.source_bump && result.source_bump !== '') {
       result.bump = await this.#loadImage(result.source_bump);
     }
 
@@ -54,7 +54,7 @@ export class DiceColors {
   }
 
   async getColorSet(options) {
-    const setName = typeof options === "string" ? options : options?.colorset;
+    const setName = typeof options === 'string' ? options : options?.colorset;
 
     if (this.#colorsets.has(setName)) {
       return this.#colorsets.get(setName);
@@ -87,7 +87,7 @@ export class DiceColors {
       ...defaultSet,
       ...options,
       name:
-        options.name?.toLowerCase() === "white"
+        options.name?.toLowerCase() === 'white'
           ? Date.now().toString()
           : options.name,
     };
