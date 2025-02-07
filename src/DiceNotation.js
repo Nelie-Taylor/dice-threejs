@@ -4,7 +4,6 @@ export class DiceNotation {
   #set = [];
   #setkeys = new Map();
   #setid = 0;
-  #groups = [];
   #totalDice = 0;
   #op = '';
   #constant = null;
