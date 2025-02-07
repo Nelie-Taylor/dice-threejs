@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { DiceTray, useDice } from "@3d-dice/dice-box-threejs";
+import { RollableArea, useDice } from "@3d-dice/dice-box-threejs";
 import "./App.css";
 
 function App() {
@@ -18,7 +18,7 @@ function App() {
 
   return (
     <div className="app">
-      <DiceTray />
+      <RollableArea />
       <div className="controls">
         <button onClick={handleRoll} disabled={!diceBox || rolling}>
           {rolling ? "Rolling..." : "Roll 2d6 + 1d20"}
