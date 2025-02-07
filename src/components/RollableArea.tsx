@@ -11,7 +11,7 @@ export function RollableArea() {
       style={{
         position: 'relative',
         width: '100%',
-        height: 200,
+        height: 600,
         backgroundColor: 'red',
       }}
     />
