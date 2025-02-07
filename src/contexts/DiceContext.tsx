@@ -9,10 +9,12 @@ type DiceBoxConfig = {
   children: React.ReactNode;
 };
 
+type DiceContextStatus = "loading" | "ready" | "error";
+
 type DiceContextType = {
   diceBox: DiceBox | null;
   containerRef: RefObject<View>;
-  status: "loading" | "ready" | "error";
+  status: DiceContextStatus;
 };
 
 export const DiceContext = createContext<DiceContextType>({
@@ -26,7 +28,7 @@ export const DiceContext = createContext<DiceContextType>({
 export const DiceProvider = ({ children, ...config }: DiceBoxConfig) => {
   const diceBoxRef = useRef<DiceBox | null>(null);
   const containerRef = useRef<View>(null);
-  const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
+  const [status, setStatus] = useState<DiceContextStatus>("loading");
   useEffect(() => {
     if (diceBoxRef.current || !containerRef.current) {
       return;
