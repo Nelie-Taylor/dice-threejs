@@ -35,15 +35,19 @@ const DEFAULT_CONFIG = {
 export class DiceBox {
   #initialized = false;
   #adaptive_timestep = false;
+  #last_time = 0;
   #running = false;
   #rolling = false;
-  #last_time = 0;
+  #threadid;
   #soundDelay = 10;
   #animstate = '';
   #dieIndex = 0;
 
-  constructor(elementContainer, options = {}) {
-    this.container = document.querySelector(elementContainer);
+  constructor(element, options = {}) {
+    if (!(element instanceof HTMLElement)) {
+      throw new Error('DiceBox constructor requires an HTMLElement');
+    }
+    this.container = element;
     this.dimensions = new THREE.Vector2(
       this.container.clientWidth,
       this.container.clientHeight
@@ -903,7 +907,14 @@ export class DiceBox {
     if (!diceFunc) {
       return false;
     }
-    return false;
+
+    const funcdata = this.DiceFunctions?.rethrowFunctions?.[diceFunc];
+    if (!funcdata?.method) {
+      return false;
+    }
+
+    const diceFuncArgs = dicemesh.notation.args || '';
+    return funcdata.method(dicemesh, diceFuncArgs);
   }
 
   throwFinished() {

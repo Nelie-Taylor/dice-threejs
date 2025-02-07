@@ -9,7 +9,9 @@ function App() {
   const [results, setResults] = useState([]);
 
   useEffect(() => {
-    const box = new DiceBox('.dice-container', {
+    if (!containerRef.current) return;
+
+    const box = new DiceBox(containerRef.current, {
       assetPath: '/assets/',
       theme: 'default',
       offscreen: false,
