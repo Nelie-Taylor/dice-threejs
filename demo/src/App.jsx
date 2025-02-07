@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { RollableArea, useDice } from "@3d-dice/dice-box-threejs";
+import PerformanceMonitor from "./components/PerformanceMonitor";
 import "./App.css";
 
 function App() {
@@ -18,6 +19,7 @@ function App() {
 
   return (
     <div className="app">
+      <PerformanceMonitor />
       <RollableArea />
       <div className="controls">
         <button onClick={handleRoll} disabled={!diceBox || rolling}>
