@@ -12,7 +12,8 @@ function App() {
     if (!diceBox || rolling) return;
 
     setRolling(true);
-    const results = await diceBox.roll('2d6 + 1d20@6,6,20');
+    const results = await diceBox.roll('4dc@1,1,1,2');
+    // const results = await diceBox.roll('2d6 + 1d20@6,6,20');
     setResults(results);
     setRolling(false);
   };

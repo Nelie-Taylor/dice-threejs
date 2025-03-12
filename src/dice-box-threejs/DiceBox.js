@@ -5,7 +5,6 @@ import { DiceNotation } from './DiceNotation.js';
 import { DiceFactory } from './DiceFactory.js';
 import { DiceColors } from './DiceColors.js';
 import { THEMES } from './const/themes.js';
-// import CannonDebugger from 'cannon-es-debugger'
 import debounce from 'just-debounce-it';
 
 const DEFAULT_CONFIG = {
@@ -34,7 +33,6 @@ export class DiceBox {
   #last_time = 0;
   #running = false;
   #rolling = false;
-  #threadid;
   #soundDelay = 10;
   #animstate = '';
   #dieIndex = 0;

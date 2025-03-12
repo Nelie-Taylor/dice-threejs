@@ -25,8 +25,6 @@ export const DiceContext = createContext<DiceContextType>({
   setStatus: () => { },
 });
 
-
-
 export const DiceProvider = ({ children, ...config }: DiceBoxConfig) => {
   const diceBoxRef = useRef<DiceBox | null>(null);
   const containerRef = useRef<View>(null);
@@ -50,7 +48,6 @@ export const DiceProvider = ({ children, ...config }: DiceBoxConfig) => {
   );
 };
 export const useDice = () => {
-  ;
   return useContext(DiceContext);
 };
 

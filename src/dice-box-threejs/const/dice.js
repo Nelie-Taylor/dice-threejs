@@ -15,7 +15,7 @@ export const DICE = {
       'textures/silvercoin/tail.png',
       'textures/silvercoin/heads.png'
     ],
-    setBumpMaps: [ 
+    setBumpMaps: [
       'textures/silvercoin/tail_bump.png',
       'textures/silvercoin/heads_bump.png'
     ],
