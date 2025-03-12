@@ -1,7 +1,7 @@
 {
-  "name": "@3d-dice/dice-box-threejs",
+  "name": "@nelie-taylor/dice-threejs",
   "author": {
-    "name": "Frank Ali"
+    "name": "Nelie Taylor"
   },
   "description": "A 3D environment for rolling game dice using threejs and cannon-es",
   "private": false,
@@ -16,15 +16,14 @@
     "d&d",
     "tabletop"
   ],
-  "version": "0.0.12",
+  "version": "0.0.1",
   "license": "MIT",
-  "homepage": "https://fantasticdice.games/",
   "repository": {
     "type": "git",
-    "url": "https://github.com/3d-dice/dice-box-threejs"
+    "url": "https://github.com/Nelie-Taylor/dice-threejs"
   },
   "bugs": {
-    "url": "https://github.com/3d-dice/dice-box-threejs/issues"
+    "url": "https://github.com/Nelie-Taylor/dice-threejs/issues"
   },
   "dev-files": [
     "src"
@@ -54,10 +53,9 @@
     "lint:fix": "eslint \"**/*.{ts,tsx,js,jsx}\" --fix"
   },
   "peerDependencies": {
-    "react": "18.2.0",
-    "react-dom": "18.2.0",
-    "react-native-web": "^0.19.13",
-    "react-native-canvas": "^3.0.0"
+    "react": "18.0.0",
+    "react-dom": "18.0.0",
+    "react-native-web": "^0.19.13"
   },
   "dependencies": {
     "cannon-es": "^0.20.0",
@@ -68,9 +66,9 @@
     "@eslint/js": "^9.19.0",
     "@types/eslint": "^9.6.1",
     "@types/node": "^20.0.0",
-    "@types/react": "18.2.43",
-    "@types/react-dom": "18.2.17",
-    "@types/react-native": "^0.73.0",
+    "@types/react": "18.0.38",
+    "@types/react-native": "^0.70.19",
+    "@types/react-dom": "18.0.11",
     "@types/three": "^0.143.0",
     "@typescript-eslint/eslint-plugin": "^8.23.0",
     "@typescript-eslint/parser": "^8.23.0",
@@ -79,10 +77,10 @@
     "eslint": "^9.19.0",
     "eslint-plugin-react": "^7.37.4",
     "eslint-plugin-react-hooks": "^5.1.0",
-    "react": "18.2.0",
-    "react-dom": "18.2.0",
+    "react": "18.0.0",
+    "react-dom": "18.0.0",
     "typescript": "^5.0.0",
-    "vite": "^3.0.8",
+    "vite": "^4.2.0",
     "vitest": "^3.0.5"
   },
   "type": "module"

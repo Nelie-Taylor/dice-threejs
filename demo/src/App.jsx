@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { RollableArea, useDice } from '@3d-dice/dice-box-threejs';
+import { RollableArea, useDice } from '@nelie-taylor/dice-threejs';
 import PerformanceMonitor from './components/PerformanceMonitor';
 import './App.css';
 
